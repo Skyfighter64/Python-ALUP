@@ -1,12 +1,31 @@
 from src.Device import Device
 from src.Frame import Command
+import time
 
-
+# create a new device object
 dev = Device()
-dev.UdpConnect('192.168.178.105', 5012)
-dev.SetColors([0xffffff, 0x00ff00])
+#establish the serial connection at port "COM9" with a BAUD of 115200
+dev.SerialConnect("COM9", 115200)
+
+# Send a color frame changing the first two leds
+print("--- Color Test ---")
+dev.SetColors([0xffffff, 0xabff15])
 dev.Send()
+
+# Send a color frame only setting the 2nd LED to white
+print("--- Clear Color Test ---")
 dev.SetCommand(Command.CLEAR)
-dev.SetColors([0xffffff,0x1252ff, 0x824347])
+dev.offset = 1
+dev.SetColors([0xffffff])
 dev.Send()
+
+# Blink the builtin LED
+# NOTE: this example needs Command ID 4 assigned to toggle the LED
+print("--- Builtin LED blink ---")
+dev.SetCommand(Command.LED_BUILTIN);
+dev.Send()
+sleep(1)
+dev.SetCommand(Command.LED_BUILTIN);
+dev.Send()
+
 dev.Disconnect()

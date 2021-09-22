@@ -1,8 +1,7 @@
 import socket
+
+
 class UdpConnection:
-
-    
-
     # default constructor
     # @param ip: a string containing the ip address of the remote device
     # @param port: the port number of the remote socket
@@ -13,7 +12,7 @@ class UdpConnection:
         self.server_ip = '0.0.0.0'
         # use the same port as the remote per default
         self.server_port = port
-        #note: the remote ip/port describe the sending ip/port and the server ip/port 
+        #note: the remote ip/port describe the sending ip/port and the server ip/port
         # ones used for listening
         # a buffer for incoming bytes. recv() only seems to be able to read whole packages,
         # docs are unclear, so this seems to be needed s
@@ -27,13 +26,13 @@ class UdpConnection:
         self.socket.bind((self.server_ip, self.server_port))
         print("Listening to %s, %d:" %(self.server_ip, self.server_port))
         print("Sending to: %s, %d" %(self.remote_ip, self.remote_port))
-    
+
     # function disconnecting the UDP connection
     def Disconnect(self):
         self.socket.close()
 
     # function sending the given data over the UDP connection
-    # @param data: the binary data to send
+    # @param data: a bytes object containing the binary data to send
     def Send(self, data):
         print("Sending: " + str(data))
         self.socket.sendto(data, (self.remote_ip, self.remote_port))
@@ -56,5 +55,5 @@ class UdpConnection:
         result = self._rxBuffer[:size]
         #delete the requested bytes from the buffer
         del self._rxBuffer[:size]
-        
+
         return result

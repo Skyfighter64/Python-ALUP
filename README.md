@@ -1,7 +1,25 @@
 # Python-ALUP
 A python implementation of the ALUP v.0.2
 
+## Properties
+- Supported versions:
+  - 0.2
 
+- Supported connections:
+  - UDP
+  - Serial (USB)
+
+
+## Installing
+For now: copy-paste the src folder to your project
+```python
+# import the main library
+from src.Device import Device
+# import command definitions
+from src.Frame import Command
+```
+## Examples:
+For examples, see ` ./examples ` directory
 
 -----------
 ## Adding connection types:

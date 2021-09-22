@@ -1,4 +1,5 @@
 from src.UdpConnection import UdpConnection
+from src.SerialConnection import SerialConnection
 from src.Frame import *
 from src.Configuration import Configuration
 import time
@@ -23,15 +24,30 @@ class Device:
         self.configuration = None
 
 
-    # function starting an ALUP/UDP connectionthe connection to the given device
+    # function starting an ALUP/UDP connection
+    # @param ip: a string containing the ip address od the device to connect to
+    # @param port: an int containing the UDP port of the device to use
     def UdpConnect(self, ip, port):
         self.connection = UdpConnection(ip,port)
         self.connection.Connect()
+        self._AlupConnect()
+        print("- connection established")
+
+    # function starting an ALUP/Serial connection
+    # @param port: a string containing the serial port to connect to
+    # @param baud: an integer defining the serial communication speed
+    def SerialConnect(self, port, baud):
+        self.connection = SerialConnection(port, baud)
+        self.connection.Connect()
+        self._AlupConnect()
+
+
+    # function establishing the ALUP connection
+    # Note: the communication has to be established first
+    def _AlupConnect(self):
         self._WaitForConnectionRequest()
         self._SendByte(self._CONNECTION_ACKNOWLEDGEMENT_BYTE)
         self.configuration = self._ReadConfiguration()
-        print("- connection established")
-
     # function terminating the connection
     def Disconnect(self):
         print("Disconnecting...")
@@ -82,7 +98,7 @@ class Device:
         # check if the protcol version is compatible
         if (not self._CheckProtocolVersion(config.protocolVersion)):
             raise ConfigurationException("Incompatible protocol versions: Version 0.2 (this) and " + config.protocolVersion)
-        
+
         # read the configuration values
         config.deviceName = self._ReadString()
         config.ledCount = self._ReadInt()
@@ -105,7 +121,7 @@ class Device:
         print("Checking protcol version...")
         if (protocolVersion != "0.2"):
             print("Incompatible protocol version " + protocolVersion + ". Version 0.2 needed")
-            # send a configuration error indicating that the versions are incompatible 
+            # send a configuration error indicating that the versions are incompatible
             self._SendByte(self._CONFIGURATION_ERROR_BYTE)
             return False
         print("Compatible!")
@@ -119,7 +135,7 @@ class Device:
             if (self.connection.Read(1) == self._CONNECTION_REQUEST_BYTE):
                 print("- Received connection request")
                 return
-        
+
 
 
     # function reading a null-terminated string from the connection
@@ -133,7 +149,7 @@ class Device:
             b = self.connection.Read(1)
 
         return receivedBytes.decode('utf-8')
-        
+
     # function reading a 32bit 2s complement integer value from the connection
     def _ReadInt(self):
         b = self.connection.Read(4)
@@ -144,11 +160,16 @@ class Device:
         self.connection.Send(b)
 
     # function waiting for a frame acknowledgement or frame error
-    def _WaitForFrameAcknowledgement(self):  
+    def _WaitForFrameAcknowledgement(self):
         print("Waiting for acknowledgement...")
         while(True):
             r = self.connection.Read(1)
             print("Received: " + str(r))
+
+            #temporarily log to file
+            with open('log.txt', 'a+') as logFile:
+                logFile.write(str(r) + '\n')
+
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
                 print("Received frame acknowledgement")
                 return

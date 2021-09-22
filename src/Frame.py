@@ -6,12 +6,12 @@ class Frame:
         # an array containing the color for each LED
         # each color is represented as hex integer (e.g. 0x00ff00)
         self.colors = []
-        # the offset of the color values 
+        # the offset of the color values
         self.offset = 0
         # the command of this frame
         self.command = Command.NONE
 
-    # function returning a binary representation of this frame according to 
+    # function returning a binary representation of this frame according to
     # ALUP v.0.2
     # @return: a bytes object containing this frame
     def ToBytes(self):
@@ -47,4 +47,4 @@ class Command(IntEnum):
     NONE = 0
     CLEAR = 1
     DISCONNECT = 2
-    
+    LED_BUILTIN = 4

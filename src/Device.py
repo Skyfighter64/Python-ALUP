@@ -20,8 +20,10 @@ class Device:
 
     def __init__(self):
         self.connection = None
+        self.connected = False
         self.frame = Frame()
         self.configuration = None
+        
 
 
     # function starting an ALUP/UDP connection
@@ -48,12 +50,15 @@ class Device:
         self._WaitForConnectionRequest()
         self._SendByte(self._CONNECTION_ACKNOWLEDGEMENT_BYTE)
         self.configuration = self._ReadConfiguration()
+        self.connected = True
+
     # function terminating the connection
     def Disconnect(self):
         print("Disconnecting...")
         #self.SetColors([0xffffff])
         self.SetCommand(Command.DISCONNECT)
         self.Send()
+        self.connected = False
         self.connection.Disconnect()
         print("Disconnected")
 

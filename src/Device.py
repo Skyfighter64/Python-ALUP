@@ -33,7 +33,7 @@ class Device:
         self.connection = UdpConnection(ip,port)
         self.connection.Connect()
         self._AlupConnect()
-        print("- connection established")
+        #print("- connection established")
 
     # function starting an ALUP/Serial connection
     # @param port: a string containing the serial port to connect to
@@ -54,13 +54,13 @@ class Device:
 
     # function terminating the connection
     def Disconnect(self):
-        print("Disconnecting...")
+        #print("Disconnecting...")
         #self.SetColors([0xffffff])
         self.SetCommand(Command.DISCONNECT)
         self.Send()
         self.connected = False
         self.connection.Disconnect()
-        print("Disconnected")
+        #print("Disconnected")
 
 
     # function setting the color values for the next frame
@@ -75,10 +75,10 @@ class Device:
 
     # function sending the current frame to the device and waiting for an acknowledgement
     def Send(self):
-        pingStart = round(time.time() * 1000)
+        #pingStart = round(time.time() * 1000)
         self.SendFrame()
         self._WaitForFrameAcknowledgement()
-        print("Ping: " + str((round(time.time() * 1000) - pingStart)) + "ms")
+        #print("Ping: " + str((round(time.time() * 1000) - pingStart)) + "ms")
 
     # function sending the current frame without waiting for an acknowledgement
     # Inproper usage may result in connection freeze
@@ -95,7 +95,8 @@ class Device:
     def _ReadConfiguration(self):
         # wait for the configuration start byte
         while(self.connection.Read(1) != self._CONFIGURATION_START_BYTE):
-            print("- Waiting for Configuration Start")
+            #print("- Waiting for Configuration Start")
+            pass
 
         config = Configuration()
         #read in the protocol version
@@ -111,7 +112,7 @@ class Device:
         config.clockPin = self._ReadInt()
         config.extraValues = self._ReadString()
 
-        print("Received config:" + str(config))
+        #print("Received config:" + str(config))
         self._SendByte(self._CONFIGURATION_ACKNOWLEDGEMENT_BYTE)
 
         return config
@@ -123,13 +124,13 @@ class Device:
     # @param protocolVersion: a string representing the protocol version
     # @return: True if versions are compatible, else False
     def _CheckProtocolVersion(self, protocolVersion):
-        print("Checking protcol version...")
+        #print("Checking protcol version...")
         if (protocolVersion != "0.2"):
-            print("Incompatible protocol version " + protocolVersion + ". Version 0.2 needed")
+            #print("Incompatible protocol version " + protocolVersion + ". Version 0.2 needed")
             # send a configuration error indicating that the versions are incompatible
             self._SendByte(self._CONFIGURATION_ERROR_BYTE)
             return False
-        print("Compatible!")
+        #print("Compatible!")
         return True
 
 
@@ -138,7 +139,7 @@ class Device:
         # wait for the connection request
         while(True):
             if (self.connection.Read(1) == self._CONNECTION_REQUEST_BYTE):
-                print("- Received connection request")
+                #print("- Received connection request")
                 return
 
 
@@ -166,20 +167,20 @@ class Device:
 
     # function waiting for a frame acknowledgement or frame error
     def _WaitForFrameAcknowledgement(self):
-        print("Waiting for acknowledgement...")
+        #print("Waiting for acknowledgement...")
         while(True):
             r = self.connection.Read(1)
-            print("Received: " + str(r))
+            #print("Received: " + str(r))
 
             #temporarily log to file
             with open('log.txt', 'a+') as logFile:
                 logFile.write(str(r) + '\n')
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
-                print("Received frame acknowledgement")
+                #print("Received frame acknowledgement")
                 return
             elif (r == self._FRAME_ERROR_BYTE):
-                print("Received frame error")
+                #print("Received frame error")
                 return
 
 

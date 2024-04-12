@@ -172,10 +172,6 @@ class Device:
             r = self.connection.Read(1)
             #print("Received: " + str(r))
 
-            #temporarily log to file
-            with open('log.txt', 'a+') as logFile:
-                logFile.write(str(r) + '\n')
-
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
                 #print("Received frame acknowledgement")
                 return

@@ -175,7 +175,7 @@ class Device:
         
         while(elapsedTime <= timeout):
             # update timeout
-            elapsedTime = (time.time_ns()/ 1000000) - startTime()
+            elapsedTime = (time.time_ns()/ 1000000) - startTime
 
             r = self.connection.Read(1) # todo this should be non-blocking
             #print("Received: " + str(r))

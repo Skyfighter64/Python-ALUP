@@ -167,9 +167,17 @@ class Device:
 
     # function waiting for a frame acknowledgement or frame error
     def _WaitForFrameAcknowledgement(self):
-        #print("Waiting for acknowledgement...")
-        while(True):
-            r = self.connection.Read(1)
+        startTime = time.time_ns() / 1000000
+        elapsedTime = 0
+
+        # timeout for this function in ms
+        timeout = 1000 
+        
+        while(elapsedTime <= timeout):
+            # update timeout
+            elapsedTime = (time.time_ns()/ 1000000) - startTime()
+
+            r = self.connection.Read(1) # todo this should be non-blocking
             #print("Received: " + str(r))
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
@@ -178,6 +186,9 @@ class Device:
             elif (r == self._FRAME_ERROR_BYTE):
                 print("ALUP Frame Error: Client could not apply data")
                 return
+               
+        # timeout was reached
+        raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
 
 
 class ConfigurationException(Exception):

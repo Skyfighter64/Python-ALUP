@@ -176,7 +176,7 @@ class Device:
                 #print("Received frame acknowledgement")
                 return
             elif (r == self._FRAME_ERROR_BYTE):
-                #print("Received frame error")
+                print("ALUP Frame Error: Client could not apply data")
                 return
 
 

@@ -81,13 +81,17 @@ class Device:
         #print("Ping: " + str((round(time.time() * 1000) - pingStart)) + "ms")
 
     # function sending the current frame without waiting for an acknowledgement
-    # Inproper usage may result in connection freeze
+    # Improper usage may result in connection freeze
     def SendFrame(self):
         frameBytes = self.frame.ToBytes()
         self.connection.Send(frameBytes)
         # clear the frame
         self.frame = Frame()
 
+    # Set all LEDs to black by sending a clear command
+    def Clear(self):
+        self.SetCommand(Command.CLEAR)
+        self.Send()
 
     # function reading in the configuration
     # @return: The configuration object read

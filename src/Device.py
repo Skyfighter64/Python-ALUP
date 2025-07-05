@@ -188,7 +188,7 @@ class Device:
             elapsedTime = (time.time_ns()/ 1000000) - startTime
 
             r = self.connection.Read(1) # todo this should be non-blocking
-            self.logger.debug("Received %s (%s)" % (r.decode('utf-8'), r.hex()))
+            self.logger.debug("Received %s (%s)" % (str(r), r.hex()))
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
                 self.logger.debug("Received frame acknowledgement")

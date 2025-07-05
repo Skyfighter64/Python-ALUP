@@ -3,6 +3,7 @@ from src.SerialConnection import SerialConnection
 from src.Frame import *
 from src.Configuration import Configuration
 import time
+import logging
 
 
 
@@ -23,6 +24,7 @@ class Device:
         self.connected = False
         self.frame = Frame()
         self.configuration = None
+        self.logger = logging.getLogger(__name__)
         
 
 
@@ -33,7 +35,7 @@ class Device:
         self.connection = UdpConnection(ip,port)
         self.connection.Connect()
         self._AlupConnect()
-        #print("- connection established")
+        self.logger.info("UDP Connection to %s:%d established." % (ip, port))
 
     # function starting an ALUP/Serial connection
     # @param port: a string containing the serial port to connect to
@@ -42,6 +44,7 @@ class Device:
         self.connection = SerialConnection(port, baud)
         self.connection.Connect()
         self._AlupConnect()
+        self.logger.info("Serial Connection to %s:%d established." % (port, baud))
 
 
     # function establishing the ALUP connection
@@ -54,13 +57,12 @@ class Device:
 
     # function terminating the connection
     def Disconnect(self):
-        #print("Disconnecting...")
         #self.SetColors([0xffffff])
         self.SetCommand(Command.DISCONNECT)
         self.Send()
         self.connected = False
         self.connection.Disconnect()
-        #print("Disconnected")
+        self.logger.info("Disconnected.")
 
 
     # function setting the color values for the next frame
@@ -83,7 +85,10 @@ class Device:
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
     def SendFrame(self):
+        self.logger.debug("Sending frame.")
         frameBytes = self.frame.ToBytes()
+        self.logger.debug("Frame size: %d" % (len(frameBytes)))
+        self.logger.debug("Data:\n %s" % (frameBytes.hex()))
         self.connection.Send(frameBytes)
         # clear the frame
         self.frame = Frame()
@@ -177,19 +182,21 @@ class Device:
         # timeout for this function in ms
         timeout = 1000 
         
+        self.logger.debug("Waiting for acknowledgement...")
         while(elapsedTime <= timeout):
             # update timeout
             elapsedTime = (time.time_ns()/ 1000000) - startTime
 
             r = self.connection.Read(1) # todo this should be non-blocking
-            #print("Received: " + str(r))
+            self.logger.debug("Received %s (%s)" % (r.decode('utf-8'), r.hex()))
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
-                #print("Received frame acknowledgement")
+                self.logger.debug("Received frame acknowledgement")
                 return
             elif (r == self._FRAME_ERROR_BYTE):
-                print("ALUP Frame Error: Client could not apply data")
+                self.logger.warning("Received ALUP Frame Error from client. Frame data could not be applied")
                 return
+            # If the received data is neither a frame error or acknowledgement it gets ignored
                
         # timeout was reached
         raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))

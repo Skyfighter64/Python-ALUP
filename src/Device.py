@@ -85,10 +85,11 @@ class Device:
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
     def SendFrame(self):
-        self.logger.debug("Sending frame.")
+        self.logger.debug("Sending frame:")
         frameBytes = self.frame.ToBytes()
-        self.logger.debug("Frame size: %d" % (len(frameBytes)))
-        self.logger.debug("Data:\n %s" % (frameBytes.hex()))
+        self.logger.debug("\n" + str(self.frame))
+        self.logger.debug("Total Frame size: %d" % (len(frameBytes)))
+        self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
         self.connection.Send(frameBytes)
         # clear the frame
         self.frame = Frame()

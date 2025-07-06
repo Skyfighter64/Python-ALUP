@@ -40,6 +40,13 @@ class Frame:
             # convert each hex color into binary and append the result
             b += color.to_bytes(3, byteorder='big', signed = False)
         return b
+    
+    def __str__(self):
+        output = "Header:\n" \
+        "\tFrame Body Size: " + str(len(self.colors) * 3) + \
+        "\n\tFrame Body Offset: " + str(self.offset) + \
+        "\nBody:\n\t" + str(self.colors)
+        return output
 
 
 # an enum containing all supported ALUP commands

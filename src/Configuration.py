@@ -10,11 +10,11 @@ class Configuration:
 
     def __str__(self):
 
-        result =  "Configuration:"
-        result += " Version:" + self.protocolVersion + ";"
-        result += " name: " + self.deviceName+ ";"
-        result += " data pin: " + str(self.dataPin)+ ";"
-        result += " clock pin: " + str(self.clockPin) + ";"
-        result += " leds: " + str(self.ledCount) + ";"
-        result += " extra values: " + self.extraValues
+        result =  "Configuration:\n"
+        result += "\tVersion:" + self.protocolVersion + "\n"
+        result += "\tName: \'" + self.deviceName+ "\'\n"
+        result += "\tData pin: " + str(self.dataPin)+ "\n"
+        result += "\tClock pin: " + str(self.clockPin) + "\n"
+        result += "\tLEDs: " + str(self.ledCount) + "\n"
+        result += "\tExtras: \'" + self.extraValues + "\'"
         return result

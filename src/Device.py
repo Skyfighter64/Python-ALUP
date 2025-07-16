@@ -19,6 +19,9 @@ class Device:
     _FRAME_ACKNOWLEDGEMENT_BYTE = b'\xfa'
     _FRAME_ERROR_BYTE = b'\xf9'
 
+    # a list of all supported protocol versions
+    PROTOCOL_VERSIONS = ["0.2"]
+
     def __init__(self):
         self.connection = None
         self.connected = False
@@ -111,7 +114,7 @@ class Device:
         config = Configuration()
         #read in the protocol version
         config.protocolVersion = self._ReadString()
-        # check if the protcol version is compatible
+        # check if the protocol version is compatible
         if (not self._CheckProtocolVersion(config.protocolVersion)):
             raise ConfigurationException("Incompatible protocol versions: Version 0.2 (this) and " + config.protocolVersion)
 
@@ -134,22 +137,23 @@ class Device:
     # @param protocolVersion: a string representing the protocol version
     # @return: True if versions are compatible, else False
     def _CheckProtocolVersion(self, protocolVersion):
-        #print("Checking protcol version...")
-        if (protocolVersion != "0.2"):
-            #print("Incompatible protocol version " + protocolVersion + ". Version 0.2 needed")
+        self.logger.debug("Checking Protocol versions:\n\tDevice: %s\n\tCompatible Versions: %s" % (protocolVersion, str(self.PROTOCOL_VERSIONS)))
+        if (protocolVersion not in self.PROTOCOL_VERSIONS):
+            self.logger.error("Protocol Version Check: Device Protocol version %s is not supported." % (protocolVersion))
             # send a configuration error indicating that the versions are incompatible
             self._SendByte(self._CONFIGURATION_ERROR_BYTE)
             return False
-        #print("Compatible!")
+        self.logger.info("Protocol Version Check: Device Protocol version %s is compatible." % (protocolVersion))
         return True
 
 
     # function waiting for a connection request
     def _WaitForConnectionRequest(self):
+        self.logger.info("Waiting for connection request from device")
         # wait for the connection request
         while(True):
             if (self.connection.Read(1) == self._CONNECTION_REQUEST_BYTE):
-                #print("- Received connection request")
+                self.logger.info("Received connection request from device")
                 return
 
 
@@ -183,7 +187,7 @@ class Device:
         # timeout for this function in ms
         timeout = 1000 
         
-        self.logger.debug("Waiting for acknowledgement...")
+        self.logger.debug("Waiting for frame acknowledgement from device")
         while(elapsedTime <= timeout):
             # update timeout
             elapsedTime = (time.time_ns()/ 1000000) - startTime
@@ -192,10 +196,10 @@ class Device:
             self.logger.debug("Received %s (%s)" % (str(r), r.hex()))
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
-                self.logger.debug("Received frame acknowledgement")
+                self.logger.debug("Received frame acknowledgement from device")
                 return
             elif (r == self._FRAME_ERROR_BYTE):
-                self.logger.warning("Received ALUP Frame Error from client. Frame data could not be applied")
+                self.logger.warning("Received ALUP Frame Error from device. Frame data could not be applied")
                 return
             # If the received data is neither a frame error or acknowledgement it gets ignored
                

@@ -38,7 +38,7 @@ class Device:
         self.connection = UdpConnection(ip,port)
         self.connection.Connect()
         self._AlupConnect()
-        self.logger.info("UDP Connection to %s:%d established." % (ip, port))
+        self.logger.info("UDP Connection to %s:%d established successfully." % (ip, port))
 
     # function starting an ALUP/Serial connection
     # @param port: a string containing the serial port to connect to
@@ -47,7 +47,7 @@ class Device:
         self.connection = SerialConnection(port, baud)
         self.connection.Connect()
         self._AlupConnect()
-        self.logger.info("Serial Connection to %s:%d established." % (port, baud))
+        self.logger.info("Serial Connection to %s:%d established successfully." % (port, baud))
 
 
     # function establishing the ALUP connection
@@ -106,6 +106,7 @@ class Device:
     # @return: The configuration object read
     # @throws: ConfigurationException if the protocol version of the devices are incompatible
     def _ReadConfiguration(self):
+        self.logger.debug("Waiting for configuration start")
         # wait for the configuration start byte
         while(self.connection.Read(1) != self._CONFIGURATION_START_BYTE):
             #print("- Waiting for Configuration Start")
@@ -125,8 +126,9 @@ class Device:
         config.clockPin = self._ReadInt()
         config.extraValues = self._ReadString()
 
-        #print("Received config:" + str(config))
+        self.logger.info("Received device configuration: " + str(config))
         self._SendByte(self._CONFIGURATION_ACKNOWLEDGEMENT_BYTE)
+        self.logger.debug("Configuration acknowledgement sent.")
 
         return config
 

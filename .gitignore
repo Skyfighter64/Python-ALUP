@@ -45,3 +45,6 @@ dist/**
 local/
 .vscode/
 log.txt
+
+dist/
+*/*.egg-info

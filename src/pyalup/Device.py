@@ -1,7 +1,7 @@
-from src.UdpConnection import UdpConnection
-from src.SerialConnection import SerialConnection
-from src.Frame import *
-from src.Configuration import Configuration
+from .UdpConnection import UdpConnection
+from .SerialConnection import SerialConnection
+from .Frame import *
+from .Configuration import Configuration
 import time
 import logging
 

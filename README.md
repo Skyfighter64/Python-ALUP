@@ -11,12 +11,21 @@ A python implementation of the ALUP v.0.2
 
 
 ## Installing
-For now: copy-paste the src folder to your project
+
+1. Clone the repository into any folder:
+```sh
+git clone git@github.com:Skyfighter64/Python-ALUP.git
+```
+2. Do development install (for now)
+```sh
+pip install -e ./Python-Alup/
+```
+
 ```python
 # import the main library
-from src.Device import Device
+from pyalup.Device import Device
 # import command definitions
-from src.Frame import Command
+from pyalup.Frame import Command
 ```
 ## Examples:
 For examples, see ` ./examples ` directory

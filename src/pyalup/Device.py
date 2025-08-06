@@ -1,4 +1,5 @@
 from .UdpConnection import UdpConnection
+from .TcpConnection import TcpConnection
 from .SerialConnection import SerialConnection
 from .Frame import *
 from .Configuration import Configuration
@@ -29,10 +30,17 @@ class Device:
         self.configuration = None
         self.logger = logging.getLogger(__name__)
         
-
+    # function starting an ALUP/TCP connection
+    # @param ip: a string containing the ip address for the device to connect to
+    # @param port: an int containing the TCP port of the device to use
+    def TcpConnect(self, ip, port):
+        self.connection = TcpConnection(ip,port)
+        self.connection.Connect()
+        self._AlupConnect()
+        self.logger.info("TCP Connection to %s:%d established successfully." % (ip, port))
 
     # function starting an ALUP/UDP connection
-    # @param ip: a string containing the ip address od the device to connect to
+    # @param ip: a string containing the ip address for the device to connect to
     # @param port: an int containing the UDP port of the device to use
     def UdpConnect(self, ip, port):
         self.connection = UdpConnection(ip,port)

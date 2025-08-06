@@ -96,10 +96,10 @@ class Device:
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
     def SendFrame(self):
-        self.logger.debug("Sending frame:")
+        self.logger.info("Sending frame:")
         frameBytes = self.frame.ToBytes()
-        self.logger.debug("\n" + str(self.frame))
-        self.logger.debug("Total Frame size: %d" % (len(frameBytes)))
+        self.logger.info("\n" + str(self.frame))
+        self.logger.info("Total Frame size: %d" % (len(frameBytes)))
         self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
         self.connection.Send(frameBytes)
         # clear the frame
@@ -197,7 +197,7 @@ class Device:
         # timeout for this function in ms
         timeout = 1000 
         
-        self.logger.debug("Waiting for frame acknowledgement from device")
+        self.logger.info("Waiting for frame acknowledgement from device")
         while(elapsedTime <= timeout):
             # update timeout
             elapsedTime = (time.time_ns()/ 1000000) - startTime
@@ -206,7 +206,7 @@ class Device:
             self.logger.debug("Received %s (%s)" % (str(r), r.hex()))
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
-                self.logger.debug("Received frame acknowledgement from device")
+                self.logger.info("Received frame acknowledgement from device")
                 return
             elif (r == self._FRAME_ERROR_BYTE):
                 self.logger.warning("Received ALUP Frame Error from device. Frame data could not be applied")

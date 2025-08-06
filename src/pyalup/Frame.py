@@ -45,6 +45,7 @@ class Frame:
         output = "Header:\n" \
         "\tFrame Body Size: " + str(len(self.colors) * 3) + \
         "\n\tFrame Body Offset: " + str(self.offset) + \
+        "\n\tCommand: " + self.command.name  + " (" + str(self.command.value) + ")" + \
         "\nBody:\n\t" + str(self.colors)
         return output
 

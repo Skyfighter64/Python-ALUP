@@ -18,6 +18,7 @@ class TcpConnection:
     def Connect(self):
         # create a TCP socket for the given credentials
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.socket.settimeout(20)
         self.socket.connect((self.remote_ip, self.remote_port))
 

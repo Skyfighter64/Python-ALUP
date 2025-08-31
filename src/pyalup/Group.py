@@ -63,6 +63,9 @@ class Group:
 
 
     def Clear(self):
+        """
+        Clear the LEDs for all grouped devices
+        """
         self.SetCommand(Command.CLEAR)
         self.Send()
 

@@ -3,9 +3,10 @@ from .TcpConnection import TcpConnection
 from .SerialConnection import SerialConnection
 from .Frame import *
 from .Configuration import Configuration
+
 import time
 import logging
-
+from timeit import default_timer as timer
 
 
 
@@ -29,6 +30,7 @@ class Device:
         self.frame = Frame()
         self.configuration = None
         self.logger = logging.getLogger(__name__)
+        self.latency = 0
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -88,10 +90,13 @@ class Device:
 
     # function sending the current frame to the device and waiting for an acknowledgement
     def Send(self):
-        #pingStart = round(time.time() * 1000)
+        # send frame and wait for response while measuring time
+        start = timer()
         self.SendFrame()
         self._WaitForFrameAcknowledgement()
-        #print("Ping: " + str((round(time.time() * 1000) - pingStart)) + "ms")
+
+        # measure round-trip time in ms
+        self.latency = (timer() - start)* 1000
 
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze

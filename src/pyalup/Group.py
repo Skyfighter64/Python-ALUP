@@ -1,6 +1,8 @@
 from .Device import Device
 from .Frame import Command
+
 import threading
+from timeit import default_timer as timer
 
 class Group:
     """
@@ -14,6 +16,9 @@ class Group:
     def __init__(self):
         # the ALUP devices in this group
         self.devices = []
+        # the round-trip latency of the last frame sent
+        # equivalent to the maximum latency of any device in practice 
+        self.latency = 0
     
     def Add(self, device: Device):
         """
@@ -32,6 +37,9 @@ class Group:
         Send to all devices in the group at the same time,
         using multithreading
         """
+        # send frame and wait for response while measuring time
+        start = timer()
+
         threads = []
         # configure one thread for each device
         for device in self.devices:
@@ -45,6 +53,9 @@ class Group:
         # wait for all threads to finish
         for thread in threads:
             thread.join()
+
+        # measure the total latency of the group
+        self.latency = (timer() - start)* 1000
 
     def SetColors(self, colors):
         """
@@ -74,6 +85,6 @@ class Group:
     def __str__(self):
         out = f"Group of {len(self.devices)} ALUP Devices\n"
         for device in self.devices:
-            out += f"\t{device.configuration.name} ({device.configuration.ledCount} LEDs)\n" 
+            out += f"\t{device.configuration.deviceName} ({device.configuration.ledCount} LEDs)\n" 
         return out
     

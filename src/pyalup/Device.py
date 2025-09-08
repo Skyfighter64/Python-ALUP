@@ -114,7 +114,8 @@ class Device:
     # Improper usage may result in connection freeze
     def SendFrame(self):
         self.logger.info("Sending frame:")
-        frameBytes = self.frame.ToBytes()
+        self.logger.debug(f"Converting timestamp: local time stamp {self.frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {self.frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
+        frameBytes = self.frame.ToBytes(self.time_delta_ms)
         self.logger.info("\n" + str(self.frame))
         self.logger.info("Total Frame size: %d" % (len(frameBytes)))
         self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))

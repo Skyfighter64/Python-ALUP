@@ -6,6 +6,8 @@ from .Configuration import Configuration
 
 import time
 import logging
+import collections
+import statistics
 from timeit import default_timer as timer
 
 
@@ -31,6 +33,15 @@ class Device:
         self.configuration = None
         self.logger = logging.getLogger(__name__)
         self.latency = 0
+
+        # time stamps for the current packet in ms
+        self._t_frame_out = 0 # time when frame was sent out
+        self._t_receiver_in = 0 # time when receiver got the frame
+        self._t_receiver_out = 0 # time when receiver sent out acknowledgement
+        self._t_response_in = 0 # time when acknowledgement was received
+
+        self._raw_time_deltas = collections.deque(maxlen=100)
+        self.time_delta_ms = 0 # the time offset from the system time to the receiver's system time in ms
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -94,6 +105,7 @@ class Device:
         start = timer()
         self.SendFrame()
         self._WaitForFrameAcknowledgement()
+        self._SynchronizeDeviceTime()
 
         # measure round-trip time in ms
         self.latency = (timer() - start)* 1000
@@ -106,6 +118,10 @@ class Device:
         self.logger.info("\n" + str(self.frame))
         self.logger.info("Total Frame size: %d" % (len(frameBytes)))
         self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
+
+        # save timestamp when frame was sent
+        self._t_frame_out = time.time_ns() // 1000000
+        
         self.connection.Send(frameBytes)
         # clear the frame
         self.frame = Frame()
@@ -114,6 +130,7 @@ class Device:
     def Clear(self):
         self.SetCommand(Command.CLEAR)
         self.Send()
+
 
     # function reading in the configuration
     # @return: The configuration object read
@@ -189,12 +206,18 @@ class Device:
     def _ReadInt(self):
         b = self.connection.Read(4)
         return int.from_bytes(b, byteorder='big', signed=True)
+    
+    # function reading a 32bit unsigned integer value from the connection
+    def _ReadUInt(self):
+        b = self.connection.Read(4)
+        return int.from_bytes(b, byteorder='big', signed=False)
 
     # function sending a single byte over the connection
     def _SendByte(self, b):
         self.connection.Send(b)
 
     # function waiting for a frame acknowledgement or frame error
+    # TODO: the timeout should be handled by the connection and not here
     def _WaitForFrameAcknowledgement(self):
         startTime = time.time_ns() / 1000000
         elapsedTime = 0
@@ -207,12 +230,19 @@ class Device:
             # update timeout
             elapsedTime = (time.time_ns()/ 1000000) - startTime
 
-            r = self.connection.Read(1) # todo this should be non-blocking
+            r = self.connection.Read(1)
             self.logger.debug("Received %s (%s)" % (str(r), r.hex()))
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
+                # save response timestamp in ms
+                self._t_response_in = time.time_ns() // 1000000
+                
                 self.logger.info("Received frame acknowledgement from device")
+                # read in timestamps from receiver
+                self._t_receiver_in = self._ReadUInt()
+                self._t_receiver_out = self._ReadUInt()
                 return
+            
             elif (r == self._FRAME_ERROR_BYTE):
                 self.logger.warning("Received ALUP Frame Error from device. Frame data could not be applied")
                 return
@@ -220,6 +250,22 @@ class Device:
                
         # timeout was reached
         raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
+
+    # function calculating the offset from the sender's time
+    # to the time on the receiver
+    def _SynchronizeDeviceTime(self):
+        # calculate the time delta based on the saved timestamps
+        # This combines the following steps:
+        # 1. Retrieve system time from receiver
+        # 2. Adjust receiver system time for transmission delay
+        # 3. Calculate difference to sender's system time  
+        # With: 
+        # time_delta_ms = time_receiver -  time_sender
+        raw_time_delta_ms = (-self._t_frame_out + self._t_receiver_in + self._t_receiver_out - self._t_response_in)/ 2
+        # we collect multiple measurements and take the median to smooth out inconsistencies
+        self._raw_time_deltas.append(raw_time_delta_ms)
+        self.time_delta_ms = statistics.median(self._raw_time_deltas) # TODO: is is better here to use median or mean?
+
 
 
 class ConfigurationException(Exception):

@@ -21,11 +21,11 @@ class SerialConnection:
     # function terminating the connection
     def Disconnect(self):
         self.connection.close()
+
     # function sending the given data over the connection
     # @param data: a bytes object containing the data to send
     def Send(self, data):
         self.connection.write(data)
-
 
     # Function reading in the given size of data from the connection
     # Blocks until the requested number of bytes was received

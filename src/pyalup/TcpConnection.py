@@ -19,7 +19,7 @@ class TcpConnection:
         # create a TCP socket for the given credentials
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        self.socket.settimeout(10)
+        self.socket.settimeout(15)
         self.socket.connect((self.remote_ip, self.remote_port))
 
     # function disconnecting the TCP connection

@@ -51,7 +51,8 @@ class Frame:
             # time stamps are disabled; apply frame asap
             # by also setting receiver time stamp to 0
             return 0
-        return int(self.timestamp + time_delta_ms)
+        # NOTE: Limit the timestamp to 32 bit unsigned integer values
+        return int((self.timestamp + time_delta_ms) % 2**32)
 
     # function returning a binary representation of this frame's body
     # @return: a bytes object containing the body of this frame

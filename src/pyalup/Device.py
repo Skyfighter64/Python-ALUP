@@ -40,8 +40,9 @@ class Device:
         self._t_receiver_out = 0 # time when receiver sent out acknowledgement
         self._t_response_in = 0 # time when acknowledgement was received
 
-        self._raw_time_deltas = collections.deque(maxlen=100)
+        self._time_deltas_ms_raw = collections.deque(maxlen=100)
         self.time_delta_ms = 0 # the time offset from the system time to the receiver's system time in ms
+        self._time_delta_ms_raw = 0
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -262,10 +263,10 @@ class Device:
         # 3. Calculate difference to sender's system time  
         # With: 
         # time_delta_ms = time_receiver -  time_sender
-        raw_time_delta_ms = (-self._t_frame_out + self._t_receiver_in + self._t_receiver_out - self._t_response_in)/ 2
+        self._time_delta_ms_raw = (-self._t_frame_out + self._t_receiver_in + self._t_receiver_out - self._t_response_in)/ 2
         # we collect multiple measurements and take the median to smooth out inconsistencies
-        self._raw_time_deltas.append(raw_time_delta_ms)
-        self.time_delta_ms = statistics.median(self._raw_time_deltas) # TODO: is is better here to use median or mean?
+        self._time_deltas_ms_raw.append(self._time_delta_ms_raw)
+        self.time_delta_ms = statistics.median(self._time_deltas_ms_raw) # TODO: is is better here to use median or mean?
 
 
 

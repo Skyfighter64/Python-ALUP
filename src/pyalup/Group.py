@@ -2,6 +2,7 @@ from .Device import Device
 from .Frame import Command
 
 import threading
+import time
 from timeit import default_timer as timer
 
 class Group:
@@ -28,15 +29,28 @@ class Group:
 
     def Remove(self, device: Device):
         """
-        Remove the first occurence of the given device from the group
+        Remove the first occurrence of the given device from this group
         """
         self.devices.remove(device)
 
-    def Send(self):
+    def Send(self, delayTarget=None):
         """
         Send to all devices in the group at the same time,
         using multithreading
+
+        @param delayTarget: Synchronously update all devices after the given delay target (in ms) passed.
+                            Set to None to deactivate (default).
+                            NOTE: This overrides time stamps of all group devices' frames
+                            NOTE: If a device's connection is slower than the specified delay target, it will
+                                    instead update ASAP.
         """
+
+        # synchronize all group members to update after reaching the delay target
+        if (delayTarget not None):
+            now = time.time_ns() // 1_000_000
+            for device in self.devices:
+                device.frame.timestamp = now + delayTarget
+
         # send frame and wait for response while measuring time
         start = timer()
 
@@ -57,10 +71,13 @@ class Group:
         # measure the total latency of the group
         self.latency = (timer() - start)* 1000
 
+
     def SetColors(self, colors):
         """
         Set the colors of all grouped devices, overriding their current color.
         If a device has less LEDs than color values given, the colors given are cut to size for this device.
+
+        @param colors: A list with integer color values.
         """
         for device in self.devices:
             device.SetColors(colors[:device.configuration.ledCount])
@@ -80,6 +97,10 @@ class Group:
         self.SetCommand(Command.CLEAR)
         self.Send()
 
+
+    def Disconnect(self):
+        for device in self.devices:
+            device.Disconnect()
 
 
     def __str__(self):

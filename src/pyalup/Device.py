@@ -26,7 +26,10 @@ class Device:
     # a list of all supported protocol versions
     PROTOCOL_VERSIONS = ["0.2"]
 
-    def __init__(self):
+    # default constructor
+    # @param _time_delta_buffer_size: The number of time measurements for the median used to calculate the time_delta.
+    # This parameter does not need to be changed except if a device has a lot of time drift and packets are sent very sparsely (reduce to 10 or 1)
+    def __init__(self, _time_delta_buffer_size=100):
         self.connection = None
         self.connected = False
         self.frame = Frame()
@@ -40,7 +43,7 @@ class Device:
         self._t_receiver_out = 0 # time when receiver sent out acknowledgement
         self._t_response_in = 0 # time when acknowledgement was received
 
-        self._time_deltas_ms_raw = collections.deque(maxlen=100)
+        self._time_deltas_ms_raw = collections.deque(maxlen=_time_delta_buffer_size)
         self.time_delta_ms = 0 # the time offset from the system time to the receiver's system time in ms
         self._time_delta_ms_raw = 0
         

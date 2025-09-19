@@ -39,14 +39,18 @@ class Group:
         using multithreading
 
         @param delayTarget: Synchronously update all devices after the given delay target (in ms) passed.
+                            All group devices update their LEDs after the given delay target, based on the
+                            current time, is exceeded.
                             Set to None to deactivate (default).
                             NOTE: This overrides time stamps of all group devices' frames
                             NOTE: If a device's connection is slower than the specified delay target, it will
                                     instead update ASAP.
+                            NOTE: This does NOT correspond to the (group-) latency but rather 
+                                    the time until LEDs are updated
         """
 
         # synchronize all group members to update after reaching the delay target
-        if (delayTarget not None):
+        if (not delayTarget is None):
             now = time.time_ns() // 1_000_000
             for device in self.devices:
                 device.frame.timestamp = now + delayTarget

@@ -111,6 +111,9 @@ class Device:
         self._WaitForFrameAcknowledgement()
         self._SynchronizeDeviceTime()
 
+        # reset the command to default
+        self.frame.command = Command.NONE
+
         # measure round-trip time in ms
         self.latency = (timer() - start)* 1000
 
@@ -128,8 +131,6 @@ class Device:
         self._t_frame_out = time.time_ns() // 1000000
         
         self.connection.Send(frameBytes)
-        # clear the frame
-        self.frame = Frame() # TODO: should we really do this? or is it more intuitive to not reset it
 
     # Set all LEDs to black by sending a clear command
     def Clear(self):
@@ -164,7 +165,6 @@ class Device:
         self.logger.info("Received device configuration: " + str(config))
         self._SendByte(self._CONFIGURATION_ACKNOWLEDGEMENT_BYTE)
         self.logger.debug("Configuration acknowledgement sent.")
-
         return config
 
 

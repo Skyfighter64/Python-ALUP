@@ -129,7 +129,7 @@ class Device:
         
         self.connection.Send(frameBytes)
         # clear the frame
-        self.frame = Frame()
+        self.frame = Frame() # TODO: should we really do this? or is it more intuitive to not reset it
 
     # Set all LEDs to black by sending a clear command
     def Clear(self):

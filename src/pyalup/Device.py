@@ -158,6 +158,7 @@ class Device:
         # read the configuration values
         config.deviceName = self._ReadString()
         config.ledCount = self._ReadInt()
+        config.frameBufferSize = self._ReadUInt(bytes=1)
         config.dataPin = self._ReadInt()
         config.clockPin = self._ReadInt()
         config.extraValues = self._ReadString()

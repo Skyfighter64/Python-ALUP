@@ -111,9 +111,6 @@ class Device:
         self._WaitForFrameAcknowledgement()
         self._SynchronizeDeviceTime()
 
-        # reset the command to default
-        self.frame.command = Command.NONE
-
         # measure round-trip time in ms
         self.latency = (timer() - start)* 1000
 
@@ -133,9 +130,13 @@ class Device:
         self.connection.Send(frameBytes)
 
     # Set all LEDs to black by sending a clear command
+    # Resets the command to the previous value afterwards
     def Clear(self):
+        # reset the command to default
+        old_command = self.frame.command = Command.NONE
         self.SetCommand(Command.CLEAR)
         self.Send()
+        self.SetCommand(old_command)
 
 
     # function reading in the configuration

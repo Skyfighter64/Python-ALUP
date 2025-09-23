@@ -37,15 +37,9 @@ class Device:
         self.logger = logging.getLogger(__name__)
         self.latency = 0
 
-        # time stamps for the current packet in ms
-        self._t_frame_out = 0 # time when frame was sent out
-        self._t_receiver_in = 0 # time when receiver got the frame
-        self._t_receiver_out = 0 # time when receiver sent out acknowledgement
-        self._t_response_in = 0 # time when acknowledgement was received
-
-        self._time_deltas_ms_raw = collections.deque(maxlen=_time_delta_buffer_size)
         self.time_delta_ms = 0 # the time offset from the system time to the receiver's system time in ms
         self._time_delta_ms_raw = 0
+        self._time_deltas_ms_raw = collections.deque(maxlen=_time_delta_buffer_size)
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -125,7 +119,7 @@ class Device:
         self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
 
         # save timestamp when frame was sent
-        self._t_frame_out = time.time_ns() // 1000000
+        self.frame._t_frame_out = time.time_ns() // 1000000
         
         self.connection.Send(frameBytes)
 
@@ -246,12 +240,12 @@ class Device:
 
             if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
                 # save response timestamp in ms
-                self._t_response_in = time.time_ns() // 1000000
+                self.frame._t_response_in = time.time_ns() // 1000000
                 
                 self.logger.info("Received frame acknowledgement from device")
                 # read in timestamps from receiver
-                self._t_receiver_in = self._ReadUInt()
-                self._t_receiver_out = self._ReadUInt()
+                self.frame._t_receiver_in = self._ReadUInt()
+                self.frame._t_receiver_out = self._ReadUInt()
                 return
             
             elif (r == self._FRAME_ERROR_BYTE):
@@ -272,10 +266,10 @@ class Device:
         # 3. Calculate difference to sender's system time  
         # With: 
         # time_delta_ms = time_receiver -  time_sender
-        self._time_delta_ms_raw = (-self._t_frame_out + self._t_receiver_in + self._t_receiver_out - self._t_response_in)/ 2
+        self._time_delta_ms_raw = (-self.frame._t_frame_out + self.frame._t_receiver_in + self.frame._t_receiver_out - self.frame._t_response_in)/ 2
         # we collect multiple measurements and take the median to smooth out inconsistencies
         self._time_deltas_ms_raw.append(self._time_delta_ms_raw)
-        self.time_delta_ms = statistics.median(self._time_deltas_ms_raw) # TODO: is is better here to use median or mean?
+        self.time_delta_ms = statistics.median(self._time_deltas_ms_raw)
 
 
 

@@ -17,6 +17,12 @@ class Frame:
         # the command of this frame
         self.command = Command.NONE
 
+        # time stamps for the frame in ms
+        self._t_frame_out = 0 # time when frame was sent out
+        self._t_receiver_in = 0 # time when receiver got the frame
+        self._t_receiver_out = 0 # time when receiver sent out acknowledgement
+        self._t_response_in = 0 # time when acknowledgement was received
+
     # function returning a binary representation of this frame according to
     # the ALUP protocol definition
     # @param time_delta_ms: the time offset for the device this frame is sent to

@@ -24,7 +24,7 @@ class Device:
     _FRAME_ERROR_BYTE = b'\xf9'
 
     # a list of all supported protocol versions
-    PROTOCOL_VERSIONS = ["0.2"]
+    PROTOCOL_VERSIONS = ["0.2.1"]
 
     # default constructor
     # @param _time_delta_buffer_size: The number of time measurements for the median used to calculate the time_delta.

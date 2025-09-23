@@ -153,7 +153,7 @@ class Device:
         config.protocolVersion = self._ReadString()
         # check if the protocol version is compatible
         if (not self._CheckProtocolVersion(config.protocolVersion)):
-            raise ConfigurationException("Incompatible protocol versions: Version 0.2 (this) and " + config.protocolVersion)
+            raise ConfigurationException("Incompatible protocol versions: Supported versions: " + str(self.PROTOCOL_VERSIONS)+ " but device has: " + config.protocolVersion)
 
         # read the configuration values
         config.deviceName = self._ReadString()
@@ -176,7 +176,7 @@ class Device:
     def _CheckProtocolVersion(self, protocolVersion):
         self.logger.debug("Checking Protocol versions:\n\tDevice: %s\n\tCompatible Versions: %s" % (protocolVersion, str(self.PROTOCOL_VERSIONS)))
         if (protocolVersion not in self.PROTOCOL_VERSIONS):
-            self.logger.error("Protocol Version Check: Device Protocol version %s is not supported." % (protocolVersion))
+            self.logger.error("Protocol Version Check: Device Protocol version is not supported: " + "Supported versions: " + str(self.PROTOCOL_VERSIONS)+ " but device has: " + protocolVersion)
             # send a configuration error indicating that the versions are incompatible
             self._SendByte(self._CONFIGURATION_ERROR_BYTE)
             return False

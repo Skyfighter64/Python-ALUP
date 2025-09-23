@@ -207,14 +207,18 @@ class Device:
 
         return receivedBytes.decode('utf-8')
 
-    # function reading a 32bit 2s complement integer value from the connection
-    def _ReadInt(self):
-        b = self.connection.Read(4)
+    # function reading a 2s complement integer value from the connection
+    # @param bytes: the number of bytes the integer has (eg. 4 Bytes for 32bit Integer)
+    # @return: the received number
+    def _ReadInt(self, bytes=4):
+        b = self.connection.Read(bytes)
         return int.from_bytes(b, byteorder='big', signed=True)
     
-    # function reading a 32bit unsigned integer value from the connection
-    def _ReadUInt(self):
-        b = self.connection.Read(4)
+    # function reading an unsigned integer value from the connection
+    # @param bytes: the number of bytes the integer has (eg. 4 Bytes for 32bit Integer)
+    # @return: the received number
+    def _ReadUInt(self, bytes=4):
+        b = self.connection.Read(bytes)
         return int.from_bytes(b, byteorder='big', signed=False)
 
     # function sending a single byte over the connection

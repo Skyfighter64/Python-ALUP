@@ -40,6 +40,9 @@ class Device:
         self.time_delta_ms = 0 # the time offset from the system time to the receiver's system time in ms
         self._time_delta_ms_raw = 0
         self._time_deltas_ms_raw = collections.deque(maxlen=_time_delta_buffer_size)
+
+        # the number of unanswered frames
+        self._openResponses = 0
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -122,6 +125,7 @@ class Device:
         self.frame._t_frame_out = time.time_ns() // 1000000
         
         self.connection.Send(frameBytes)
+        self._openResponses += 1
 
     # Set all LEDs to black by sending a clear command
     # Resets the command to the previous value afterwards
@@ -223,38 +227,100 @@ class Device:
 
     # function waiting for a frame acknowledgement or frame error
     # TODO: the timeout should be handled by the connection and not here
+    # Blocking if the buffer on the receiving device is full.
     def _WaitForFrameAcknowledgement(self):
-        startTime = time.time_ns() / 1000000
-        elapsedTime = 0
 
-        # timeout for this function in ms
-        timeout = 1000 
+        # Read in all remaining responses, but only truly wait for the first one
+
+
+        # TODO: we need to add some time to account for the ack transmission latency
+        remaining_time = max((time.time_ns() // 1_000_000) - self.frame.timestamp, 0)
+        # check if there is more space in the buffer
+        if(self._openResponses >= self.configuration.frameBufferSize):
+            # buffer is full; wait 15s for response
+            timeout = remaining_time + 15_000
+            try:
+                self._HandleFrameResponse(1, timeout=timeout)
+            except TimeoutError:
+                # timeout has been reached, device is probably dead
+                # pass exception on to caller
+                raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
+        else:
+            # there is still space in the buffer; just send next packet as soon as Send() is called again
+            #TODO: do we actually want to try to read here or should we just start reading once the buffer is full?
+            #TODO: do we want to not wait at all or should we wait for the timeout to be reached or half or so? 
+            # AKA. do we want to queue up frames or do we want to just balance out late acks? 
+            # If the time stamps are big their contents might be too old already
+            # timeout = -1
+            timeout = remaining_time
+            try:
+                self._HandleFrameResponse(1, timeout=timeout)
+            except (TimeoutError, BlockingIOError):
+                # timed out but there is still space in the frame buffer
+                # -> just ignore timeout
+                pass
+
+
+        # check if more open responses were received
+        for _ in range(self._openResponses - 1):
+            # read in if there is a response
+            try:
+                self._HandleFrameResponse(timeout=0) # TODO: this should be non-blocking
+            except BlockingIOError:
+                # no more responses found, do nothing
+                pass
         
-        self.logger.info("Waiting for frame acknowledgement from device")
-        while(elapsedTime <= timeout):
-            # update timeout
-            elapsedTime = (time.time_ns()/ 1000000) - startTime
 
-            r = self.connection.Read(1)
-            self.logger.debug("Received %s (%s)" % (str(r), r.hex()))
 
-            if(r == self._FRAME_ACKNOWLEDGEMENT_BYTE):
-                # save response timestamp in ms
-                self.frame._t_response_in = time.time_ns() // 1000000
-                
-                self.logger.info("Received frame acknowledgement from device")
-                # read in timestamps from receiver
-                self.frame._t_receiver_in = self._ReadUInt()
-                self.frame._t_receiver_out = self._ReadUInt()
-                return
-            
-            elif (r == self._FRAME_ERROR_BYTE):
-                self.logger.warning("Received ALUP Frame Error from device. Frame data could not be applied")
-                return
-            # If the received data is neither a frame error or acknowledgement it gets ignored
+
+        # Wait until timeout is reached
+        # Make timeout dependent on frame time stamp (+ manual / automatic max. delay)
+        # if not answered: 
+        #   Check if there are too many open acknowledgements (more than the device has frame buffers):
+                # if too many: wait indefinitely / large timeout (like 10s)
+                # if not too many: return to main loop to send next frame. NOTE: after returning, we need to try to read in all open ACKS! (might be more than one) but give any open acks from before only very short timeout
+
                
         # timeout was reached
-        raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
+        
+
+
+
+    def _HandleFrameResponse(self, timeout):
+
+        # should we implement timeout here? with available()? Available() is non-existant for tcp/udp sockets
+        # we need to check for bullshit on the line (debug messages?)
+
+        # or should any connection.Read() call provide a timeout parameter?
+
+
+        # TODO: make any connection.read() provide a timeout parameter. if the timeout is exceeded, return a timeout exception 
+        # TODO: implement timeout: when timeout is defined, make blocking, if timeout is -1 make nonblocking
+
+        # read in next byte from connection, wait until the timeout has passed
+        response = self.connection.Read(1, timeout=timeout)
+        self.logger.debug("Received %s (%s)" % (str(response), response.hex()))
+
+        if(response == self._FRAME_ACKNOWLEDGEMENT_BYTE):
+            # save response timestamp in ms
+            self.frame._t_response_in = time.time_ns() // 1000000
+            self._openResponses -= 1
+
+            # read in timestamps from receiver
+            self.frame._t_receiver_in = self._ReadUInt()
+            self.frame._t_receiver_out = self._ReadUInt()
+
+            self.logger.info("Received frame acknowledgement from device")
+            return
+        
+        elif (response == self._FRAME_ERROR_BYTE):
+            self.logger.warning("Received ALUP Frame Error from device. Frame data could not be applied")
+            self._openResponses -= 1
+            return
+        # If the received data is neither a frame error or acknowledgement it gets ignored
+               
+
+
 
     # function calculating the offset from the sender's time
     # to the time on the receiver

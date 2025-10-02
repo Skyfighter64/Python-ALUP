@@ -232,12 +232,12 @@ class Device:
 
         # Read in all remaining responses, but only truly wait for the first one
 
-
         # TODO: we need to add some time to account for the ack transmission latency
         remaining_time = max((time.time_ns() // 1_000_000) - self.frame.timestamp, 0)
+
         # check if there is more space in the buffer
         if(self._openResponses >= self.configuration.frameBufferSize):
-            # buffer is full; wait 15s for response
+            # buffer is full; wait additional 15s for response
             timeout = remaining_time + 15_000
             try:
                 self._HandleFrameResponse(1, timeout=timeout)
@@ -247,15 +247,15 @@ class Device:
                 raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
         else:
             # there is still space in the buffer; just send next packet as soon as Send() is called again
+            
             #TODO: do we actually want to try to read here or should we just start reading once the buffer is full?
             #TODO: do we want to not wait at all or should we wait for the timeout to be reached or half or so? 
             # AKA. do we want to queue up frames or do we want to just balance out late acks? 
             # If the time stamps are big their contents might be too old already
-            # timeout = -1
             timeout = remaining_time
             try:
                 self._HandleFrameResponse(1, timeout=timeout)
-            except (TimeoutError, BlockingIOError):
+            except TimeoutError:
                 # timed out but there is still space in the frame buffer
                 # -> just ignore timeout
                 pass
@@ -265,37 +265,15 @@ class Device:
         for _ in range(self._openResponses - 1):
             # read in if there is a response
             try:
-                self._HandleFrameResponse(timeout=0) # TODO: this should be non-blocking
-            except BlockingIOError:
+                # read in a response if present without blocking
+                self._HandleFrameResponse(timeout=0)
+            except TimeoutError:
                 # no more responses found, do nothing
                 pass
-        
-
-
-
-        # Wait until timeout is reached
-        # Make timeout dependent on frame time stamp (+ manual / automatic max. delay)
-        # if not answered: 
-        #   Check if there are too many open acknowledgements (more than the device has frame buffers):
-                # if too many: wait indefinitely / large timeout (like 10s)
-                # if not too many: return to main loop to send next frame. NOTE: after returning, we need to try to read in all open ACKS! (might be more than one) but give any open acks from before only very short timeout
-
-               
-        # timeout was reached
-        
-
 
 
     def _HandleFrameResponse(self, timeout):
-
-        # should we implement timeout here? with available()? Available() is non-existant for tcp/udp sockets
-        # we need to check for bullshit on the line (debug messages?)
-
-        # or should any connection.Read() call provide a timeout parameter?
-
-
-        # TODO: make any connection.read() provide a timeout parameter. if the timeout is exceeded, return a timeout exception 
-        # TODO: implement timeout: when timeout is defined, make blocking, if timeout is -1 make nonblocking
+        # TODO: we need to check for bullshit on the line (debug messages?)
 
         # read in next byte from connection, wait until the timeout has passed
         response = self.connection.Read(1, timeout=timeout)

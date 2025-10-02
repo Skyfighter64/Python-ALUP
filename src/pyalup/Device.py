@@ -23,6 +23,11 @@ class Device:
     _FRAME_ACKNOWLEDGEMENT_BYTE = b'\xfa'
     _FRAME_ERROR_BYTE = b'\xf9'
 
+    # default read timeout in ms
+    # used everywhere where no specific timeout value is needed
+    # default : 10_000 ms
+    _DEFAULT_READ_TIMEOUT = 10_000 
+
     # a list of all supported protocol versions
     PROTOCOL_VERSIONS = ["0.2.1"]
 
@@ -143,7 +148,7 @@ class Device:
     def _ReadConfiguration(self):
         self.logger.debug("Waiting for configuration start")
         # wait for the configuration start byte
-        while(self.connection.Read(1) != self._CONFIGURATION_START_BYTE):
+        while(self.connection.Read(1, self._DEFAULT_READ_TIMEOUT) != self._CONFIGURATION_START_BYTE):
             #print("- Waiting for Configuration Start")
             pass
 
@@ -189,7 +194,7 @@ class Device:
         self.logger.info("Waiting for connection request from device")
         # wait for the connection request
         while(True):
-            if (self.connection.Read(1) == self._CONNECTION_REQUEST_BYTE):
+            if (self.connection.Read(1, self._DEFAULT_READ_TIMEOUT) == self._CONNECTION_REQUEST_BYTE):
                 self.logger.info("Received connection request from device")
                 return
 
@@ -200,7 +205,7 @@ class Device:
     def _ReadString(self):
         receivedBytes = b''
         # read in all bytes until a null terminator is read
-        b = self.connection.Read(1)
+        b = self.connection.Read(1, self._DEFAULT_READ_TIMEOUT)
         while(b != b'\x00'):
             receivedBytes += b
             b = self.connection.Read(1)
@@ -211,14 +216,14 @@ class Device:
     # @param bytes: the number of bytes the integer has (eg. 4 Bytes for 32bit Integer)
     # @return: the received number
     def _ReadInt(self, bytes=4):
-        b = self.connection.Read(bytes)
+        b = self.connection.Read(bytes, self._DEFAULT_READ_TIMEOUT)
         return int.from_bytes(b, byteorder='big', signed=True)
     
     # function reading an unsigned integer value from the connection
     # @param bytes: the number of bytes the integer has (eg. 4 Bytes for 32bit Integer)
     # @return: the received number
     def _ReadUInt(self, bytes=4):
-        b = self.connection.Read(bytes)
+        b = self.connection.Read(bytes, self._DEFAULT_READ_TIMEOUT)
         return int.from_bytes(b, byteorder='big', signed=False)
 
     # function sending a single byte over the connection
@@ -233,28 +238,32 @@ class Device:
         # Read in all remaining responses, but only truly wait for the first one
 
         # TODO: we need to add some time to account for the ack transmission latency
-        remaining_time = max((time.time_ns() // 1_000_000) - self.frame.timestamp, 0)
+        # TODO: this does not work if time is not yet synchronized
+        if (self.frame.timestamp == 0): 
+            remaining_time = 0
+        else: 
+            remaining_time = max((time.time_ns() // 1_000_000) - self.frame.timestamp, 0)
 
         # check if there is more space in the buffer
         if(self._openResponses >= self.configuration.frameBufferSize):
             # buffer is full; wait additional 15s for response
             timeout = remaining_time + 15_000
             try:
-                self._HandleFrameResponse(1, timeout=timeout)
+                self._HandleFrameResponse(timeout=timeout)
             except TimeoutError:
                 # timeout has been reached, device is probably dead
                 # pass exception on to caller
                 raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
         else:
             # there is still space in the buffer; just send next packet as soon as Send() is called again
-            
+
             #TODO: do we actually want to try to read here or should we just start reading once the buffer is full?
             #TODO: do we want to not wait at all or should we wait for the timeout to be reached or half or so? 
             # AKA. do we want to queue up frames or do we want to just balance out late acks? 
             # If the time stamps are big their contents might be too old already
             timeout = remaining_time
             try:
-                self._HandleFrameResponse(1, timeout=timeout)
+                self._HandleFrameResponse(timeout=timeout)
             except TimeoutError:
                 # timed out but there is still space in the frame buffer
                 # -> just ignore timeout

@@ -33,10 +33,15 @@ class TcpConnection:
 
     # function reading in data from the socket and returning the requested number
     # of bytes.
-    # Note: This function is blocking until the requested number of bytes has been received
     # @param size: the number of bytes to read from the rx buffer
+    # @param timeout: timeout in ms. If there is no data received within the timeout, a TimeoutError is raised.
+    #                 0 for non-blocking mode, None for full blocking mode. For more info, see socket docs.
+    #                 Default: 0
+    #                 NOTE: the timeout is per-packet, each packet has its own timeout when reading multiple packets
     # @return the binary data received from the socket
-    def Read(self, size):
+    # @raises: TimeoutError if the given timeout is exceeded
+    def Read(self, size, timeout=0):
+        self.socket.settimeout((timeout / 1_000) if timeout is not None else None)
         while (len(self._rxBuffer) < size):
             # not enough data in buffer
             # read in a new packet

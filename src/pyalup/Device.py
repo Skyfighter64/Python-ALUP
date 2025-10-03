@@ -8,6 +8,7 @@ import time
 import logging
 import collections
 import statistics
+import copy
 from timeit import default_timer as timer
 
 
@@ -107,11 +108,19 @@ class Device:
 
     # function sending the current frame to the device and waiting for an acknowledgement
     def Send(self):
+        # copy the current frame from the device to send it
+        # NOTE: we need this in order to save frame references into the _unansweredFrames deque:
+        #       self.frame should be modifiable from outside as part of the API, but as soon as we send
+        #       it, we need a fixed object to reference in the unanswered frames queue 
+        # NOTE: technically, a shallow copy would be sufficient, but for consistency we do a deep copy
+        frame = copy.deepcopy(self.frame)
+
         # send frame and wait for response while measuring time
-        # TODO: does this measurement still work with buffering?
+        # TODO: does this measurement still work with buffering? or does it represent something else now
         start = timer()
-        # TODO: how should the api, lifecycle of a frame be?
-        self.SendFrame(self.frame)
+        self.SendFrame(frame)
+        self._unansweredFrames.append(frame)
+        self.logger.debug("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
         self._WaitForResponse()
 
         # measure round-trip time in ms
@@ -132,8 +141,6 @@ class Device:
         frame._t_frame_out = time.time_ns() // 1000000
         
         self.connection.Send(frameBytes)
-        self._unansweredFrames.append(frame)
-        self.logger.debug("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
 
     # Set all LEDs to black by sending a clear command
     # Resets the command to the previous value afterwards

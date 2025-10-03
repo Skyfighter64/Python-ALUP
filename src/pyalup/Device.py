@@ -23,7 +23,7 @@ class Device:
     _FRAME_ACKNOWLEDGEMENT_BYTE = b'\xfa'
     _FRAME_ERROR_BYTE = b'\xf9'
 
-    # default read timeout in ms
+    # default timeout for reading from the connection in ms
     # used everywhere where no specific timeout value is needed
     # default : 10_000 ms
     _DEFAULT_READ_TIMEOUT = 10_000 
@@ -47,7 +47,10 @@ class Device:
         self._time_deltas_ms_raw = collections.deque(maxlen=_time_delta_buffer_size)
 
         # the number of unanswered frames
+        # TODO: remove, replace with len(_openFrames)
         self._openResponses = 0
+        # a queue containing the unanswered frames
+        self._unansweredFrames = collections.deque() # TODO: would it be useful to make it fixed-size or would this cause a problem?
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -108,28 +111,32 @@ class Device:
     # function sending the current frame to the device and waiting for an acknowledgement
     def Send(self):
         # send frame and wait for response while measuring time
+        # TODO: does this measurement still work with buffering?
         start = timer()
-        self.SendFrame()
-        self._WaitForFrameAcknowledgement()
-        self._SynchronizeDeviceTime()
+        # TODO: how should the api, lifecycle of a frame be?
+        self.SendFrame(self.frame)
+        self._WaitForResponse()
 
         # measure round-trip time in ms
         self.latency = (timer() - start)* 1000
 
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
-    def SendFrame(self):
+    def SendFrame(self, frame):
         self.logger.info("Sending frame:")
-        self.logger.debug(f"Converting timestamp: local time stamp {self.frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {self.frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
-        frameBytes = self.frame.ToBytes(self.time_delta_ms)
-        self.logger.info("\n" + str(self.frame))
+        self.logger.debug(f"Converting timestamp: local time stamp {frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
+        frameBytes = frame.ToBytes(self.time_delta_ms)
+        self.logger.info("\n" + str(frame))
         self.logger.info("Total Frame size: %d" % (len(frameBytes)))
+        self.logger.info("Device Buffer usage before sending: " + str(self._openResponses) + "/" + str(self.configuration.frameBufferSize))
         self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
 
         # save timestamp when frame was sent
-        self.frame._t_frame_out = time.time_ns() // 1000000
+        frame._t_frame_out = time.time_ns() // 1000000
         
         self.connection.Send(frameBytes)
+        self._unansweredFrames.append(frame)
+        self.logger.debug("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
         self._openResponses += 1
 
     # Set all LEDs to black by sending a clear command
@@ -231,21 +238,24 @@ class Device:
         self.connection.Send(b)
 
     # function waiting for a frame acknowledgement or frame error
-    # TODO: the timeout should be handled by the connection and not here
-    # Blocking if the buffer on the receiving device is full.
-    def _WaitForFrameAcknowledgement(self):
-
+    # Blocking for 15s or more if the buffer on the receiving device is full.
+    # @raises: TimeoutError: if no response was received within a timeout.
+    #           NOTE: the timeout duration depends on the number of open responses
+    #                 and the time stamp of the sent frame
+    def _WaitForResponse(self):
         # Read in all remaining responses, but only truly wait for the first one
+        # TODO: we might need to add some time to account for the ack transmission latency
 
-        # TODO: we need to add some time to account for the ack transmission latency
-        # TODO: this does not work if time is not yet synchronized
-        if (self.frame.timestamp == 0): 
+        # wait until the time stamp of the most recently sent frame is reached
+        if (self._unansweredFrames[-1].timestamp == 0): 
+            # time stamps are disabled; don't wait at all
+            # NOTE: this is especially needed for cases where the time synchronization is not done yet or inaccurate
             remaining_time = 0
         else: 
-            remaining_time = max((time.time_ns() // 1_000_000) - self.frame.timestamp, 0)
+            remaining_time = max((time.time_ns() // 1_000_000) - self._unansweredFrames[-1].timestamp, 0)
 
         # check if there is more space in the buffer
-        if(self._openResponses >= self.configuration.frameBufferSize):
+        if(len(self._unansweredFrames) >= self.configuration.frameBufferSize):
             # buffer is full; wait additional 15s for response
             timeout = remaining_time + 15_000
             try:
@@ -259,8 +269,14 @@ class Device:
 
             #TODO: do we actually want to try to read here or should we just start reading once the buffer is full?
             #TODO: do we want to not wait at all or should we wait for the timeout to be reached or half or so? 
+            #TODO: map acks to packets using sequence numbers
             # AKA. do we want to queue up frames or do we want to just balance out late acks? 
             # If the time stamps are big their contents might be too old already
+
+            # BUG: if a timeouterror is thrown, the _openResponses escalate to big numbers
+            # to reproduce: disable calibration in buffer test script
+            # BUG: weird behaviour if buffer is full: openResponses escalate and connection slows down -> if +30ms are added to timeout
+
             timeout = remaining_time
             try:
                 self._HandleFrameResponse(timeout=timeout)
@@ -268,7 +284,6 @@ class Device:
                 # timed out but there is still space in the frame buffer
                 # -> just ignore timeout
                 pass
-
 
         # check if more open responses were received
         for _ in range(self._openResponses - 1):
@@ -282,8 +297,6 @@ class Device:
 
 
     def _HandleFrameResponse(self, timeout):
-        # TODO: we need to check for bullshit on the line (debug messages?)
-
         # read in next byte from connection, wait until the timeout has passed
         response = self.connection.Read(1, timeout=timeout)
         self.logger.debug("Received %s (%s)" % (str(response), response.hex()))
@@ -291,15 +304,21 @@ class Device:
         if(response == self._FRAME_ACKNOWLEDGEMENT_BYTE):
             # find corresponding frame
             response_id = self._ReadUInt()
+            frame = self._PopFrameWithID(response_id, self._unansweredFrames)
+
             # save response timestamp in ms
-            self.frame._t_response_in = time.time_ns() // 1000000
+            frame._t_response_in = time.time_ns() // 1000000
             self._openResponses -= 1
 
             # read in timestamps from receiver
-            self.frame._t_receiver_in = self._ReadUInt()
-            self.frame._t_receiver_out = self._ReadUInt()
+            frame._t_receiver_in = self._ReadUInt()
+            frame._t_receiver_out = self._ReadUInt()
 
             self.logger.info("Received frame acknowledgement from device")
+
+            # all timestamps are saved, update time synchronization
+            # with the frame's time stamps 
+            self._SynchronizeDeviceTime(frame)
             return
         
         elif (response == self._FRAME_ERROR_BYTE):
@@ -310,14 +329,42 @@ class Device:
             self.logger.warning("Received ALUP Frame Error for frame ID " + str(response_id) + ". Error Code: " + str(error_code))
             return
         # If the received data is neither a frame error or acknowledgement it gets ignored
+        self.logger.warning("Received answer that is neither a Frame Error or Frame Acknowledgement: " + str(response))
                
 
+    # pop the first frame with the given id from the given queue of frames
+    # @param id: the ID of the frame to pop
+    # @param queue: a deque containing frames
+    # @return: the found and removed frame. None if not found
+    def _PopFrameWithID(self, id : int, queue : collections.deque) -> Frame:
 
+        # check if queue has items
+        if len(queue) == 0:
+            return None
+        
+        # find the element with the ID by rotating through the 
+        # queue and checking the ID of the leftmost element
+        # this is implemented according to the recommendations in the python docs: 
+        # https://docs.python.org/3/library/collections.html#collections.deque
+        for i in range(len(queue)):
+            if (queue[0].id == id):
+                # found matching ID 
+                frame = queue.popleft()
+                # rotate queue back to original state 
+                queue.rotate(i)
+                self.logger.debug("Found frame in deque at index " + str(i))
+                return frame
+            queue.rotate(-1) 
+         
+        # went through whole queue but did not find frame with ID
+        self.logger.warning("Could not find frame with ID " + str(id) + " in deque")
+        return None
+    
 
     # function calculating the offset from the sender's time
-    # to the time on the receiver
-    def _SynchronizeDeviceTime(self):
-        # calculate the time delta based on the saved timestamps
+    # to the time on the receiver based on the time stamps of a frame
+    def _SynchronizeDeviceTime(self, frame):
+        # calculate the time delta based on the saved timestamps of the given frame
         # This combines the following steps:
         # 1. Retrieve system time from receiver
         # 2. Adjust receiver system time for transmission delay

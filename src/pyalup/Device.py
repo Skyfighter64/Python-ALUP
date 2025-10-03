@@ -49,6 +49,7 @@ class Device:
 
         # a queue containing the unanswered frames
         self._unansweredFrames = collections.deque() # TODO: would it be useful to make it fixed-size or would this cause a problem?
+        self._nextFrameID = 0
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -114,6 +115,8 @@ class Device:
         #       it, we need a fixed object to reference in the unanswered frames queue 
         # NOTE: technically, a shallow copy would be sufficient, but for consistency we do a deep copy
         frame = copy.deepcopy(self.frame)
+        frame.id = self._nextFrameID
+        self._nextFrameID = (self._nextFrameID + 1) % 256 #TODO: should we cap this based on frame buffer size?s
 
         # send frame and wait for response while measuring time
         # TODO: does this measurement still work with buffering? or does it represent something else now
@@ -305,7 +308,8 @@ class Device:
 
         if(response == self._FRAME_ACKNOWLEDGEMENT_BYTE):
             # find corresponding frame
-            response_id = self._ReadUInt()
+            response_id = self._ReadUInt(bytes=1)
+            self.logger.info(f"Received frame acknowledgement: ID: {response_id}")
             frame = self._PopFrameWithID(response_id, self._unansweredFrames)
 
             # save response timestamp in ms
@@ -315,7 +319,7 @@ class Device:
             frame._t_receiver_in = self._ReadUInt()
             frame._t_receiver_out = self._ReadUInt()
 
-            self.logger.info("Received frame acknowledgement from device")
+
 
             # all timestamps are saved, update time synchronization
             # with the frame's time stamps 
@@ -358,7 +362,9 @@ class Device:
             queue.rotate(-1) 
          
         # went through whole queue but did not find frame with ID
-        self.logger.warning("Could not find frame with ID " + str(id) + " in deque")
+        # This should never happen because we only wait for answers of frames which 
+        # were actually sent at some point
+        self.logger.error("Could not find frame with ID " + str(id) + " in deque")
         return None
     
 

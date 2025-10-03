@@ -29,7 +29,7 @@ class Device:
     _DEFAULT_READ_TIMEOUT = 10_000 
 
     # a list of all supported protocol versions
-    PROTOCOL_VERSIONS = ["0.2.1"]
+    PROTOCOL_VERSIONS = ["0.2.2"]
 
     # default constructor
     # @param _time_delta_buffer_size: The number of time measurements for the median used to calculate the time_delta.
@@ -289,6 +289,8 @@ class Device:
         self.logger.debug("Received %s (%s)" % (str(response), response.hex()))
 
         if(response == self._FRAME_ACKNOWLEDGEMENT_BYTE):
+            # find corresponding frame
+            response_id = self._ReadUInt()
             # save response timestamp in ms
             self.frame._t_response_in = time.time_ns() // 1000000
             self._openResponses -= 1
@@ -301,8 +303,11 @@ class Device:
             return
         
         elif (response == self._FRAME_ERROR_BYTE):
-            self.logger.warning("Received ALUP Frame Error from device. Frame data could not be applied")
-            self._openResponses -= 1
+            response_id = self._ReadUInt()
+            error_code = self._ReadUInt()
+            # remove frame as it now is answered
+            self._PopFrameWithID(response_id, self._unansweredFrames)
+            self.logger.warning("Received ALUP Frame Error for frame ID " + str(response_id) + ". Error Code: " + str(error_code))
             return
         # If the received data is neither a frame error or acknowledgement it gets ignored
                

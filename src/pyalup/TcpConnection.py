@@ -41,18 +41,25 @@ class TcpConnection:
     # @return the binary data received from the socket
     # @raises: TimeoutError if the given timeout is exceeded
     def Read(self, size, timeout=0):
-        self.socket.settimeout((timeout / 1_000) if timeout is not None else None)
-        while (len(self._rxBuffer) < size):
-            # not enough data in buffer
-            # read in a new packet
-            (data, address) = self.socket.recvfrom(4096)
+        try:
+            # apply the timeout to the socket
+            self.socket.settimeout((timeout / 1_000) if timeout is not None else None)
 
-            # add the read data to the buffer
-            self._rxBuffer += data
+            while (len(self._rxBuffer) < size):
+                # not enough data in buffer
+                # read in a new packet
+                (data, address) = self.socket.recvfrom(4096)
+                # add the read data to the buffer
+                self._rxBuffer += data
 
-        # get the requested amount of bytes from the buffer
-        result = self._rxBuffer[:size]
-        #delete the requested bytes from the buffer
-        del self._rxBuffer[:size]
+            # get the requested amount of bytes from the buffer
+            result = self._rxBuffer[:size]
+
+            #delete the requested bytes from the buffer
+            del self._rxBuffer[:size]
+        except BlockingIOError:
+            # convert the blockingIOError raised when non-blocking mode is used
+            # to a timeout exception
+            raise TimeoutError
 
         return result

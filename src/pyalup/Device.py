@@ -372,7 +372,7 @@ class Device:
         # 3. Calculate difference to sender's system time  
         # With: 
         # time_delta_ms = time_receiver -  time_sender
-        self._time_delta_ms_raw = (-self.frame._t_frame_out + self.frame._t_receiver_in + self.frame._t_receiver_out - self.frame._t_response_in)/ 2
+        self._time_delta_ms_raw = (-frame._t_frame_out + frame._t_receiver_in + frame._t_receiver_out - frame._t_response_in)/ 2
         # we collect multiple measurements and take the median to smooth out inconsistencies
         self._time_deltas_ms_raw.append(self._time_delta_ms_raw)
         self.time_delta_ms = statistics.median(self._time_deltas_ms_raw)

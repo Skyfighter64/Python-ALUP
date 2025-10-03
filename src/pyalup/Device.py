@@ -46,9 +46,6 @@ class Device:
         self._time_delta_ms_raw = 0
         self._time_deltas_ms_raw = collections.deque(maxlen=_time_delta_buffer_size)
 
-        # the number of unanswered frames
-        # TODO: remove, replace with len(_openFrames)
-        self._openResponses = 0
         # a queue containing the unanswered frames
         self._unansweredFrames = collections.deque() # TODO: would it be useful to make it fixed-size or would this cause a problem?
         
@@ -128,7 +125,7 @@ class Device:
         frameBytes = frame.ToBytes(self.time_delta_ms)
         self.logger.info("\n" + str(frame))
         self.logger.info("Total Frame size: %d" % (len(frameBytes)))
-        self.logger.info("Device Buffer usage before sending: " + str(self._openResponses) + "/" + str(self.configuration.frameBufferSize))
+        self.logger.info("Device Buffer usage before sending: " + str(len(self._unansweredFrames)) + "/" + str(self.configuration.frameBufferSize))
         self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
 
         # save timestamp when frame was sent
@@ -137,7 +134,6 @@ class Device:
         self.connection.Send(frameBytes)
         self._unansweredFrames.append(frame)
         self.logger.debug("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
-        self._openResponses += 1
 
     # Set all LEDs to black by sending a clear command
     # Resets the command to the previous value afterwards
@@ -273,7 +269,6 @@ class Device:
             # AKA. do we want to queue up frames or do we want to just balance out late acks? 
             # If the time stamps are big their contents might be too old already
 
-            # BUG: if a timeouterror is thrown, the _openResponses escalate to big numbers
             # to reproduce: disable calibration in buffer test script
             # BUG: weird behaviour if buffer is full: openResponses escalate and connection slows down -> if +30ms are added to timeout
 
@@ -286,7 +281,7 @@ class Device:
                 pass
 
         # check if more open responses were received
-        for _ in range(self._openResponses - 1):
+        for _ in range(len(self._unansweredFrames) - 1):
             # read in if there is a response
             try:
                 # read in a response if present without blocking
@@ -308,7 +303,6 @@ class Device:
 
             # save response timestamp in ms
             frame._t_response_in = time.time_ns() // 1000000
-            self._openResponses -= 1
 
             # read in timestamps from receiver
             frame._t_receiver_in = self._ReadUInt()

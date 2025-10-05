@@ -50,6 +50,11 @@ class Device:
         # a queue containing the unanswered frames
         self._unansweredFrames = collections.deque() # TODO: would it be useful to make it fixed-size or would this cause a problem?
         self._nextFrameID = 0
+
+        # callback function called when a frame receives its response
+        # Used e.g. for logging frame timestamps with buffering enabled
+        # has to have Signature: function(frame : Alup.Frame)
+        self._onFrameResponse = None 
         
     # function starting an ALUP/TCP connection
     # @param ip: a string containing the ip address for the device to connect to
@@ -344,7 +349,9 @@ class Device:
             frame._t_receiver_in = self._ReadUInt()
             frame._t_receiver_out = self._ReadUInt()
 
-
+            # call the callback function if defined
+            if(self._onFrameResponse is not None):
+                self._onFrameResponse(frame)
 
             # all timestamps are saved, update time synchronization
             # with the frame's time stamps 

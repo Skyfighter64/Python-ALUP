@@ -41,7 +41,7 @@ class Device:
         self.frame = Frame()
         self.configuration = None
         self.logger = logging.getLogger(__name__)
-        self.latency = 0
+        self.latency = 0 # NOTE: This is the Device Latency (the time from sending a Frame to receiving ANY Acknowledgement) 
 
         self.time_delta_ms = 0 # the time offset from the system time to the receiver's system time in ms
         self._time_delta_ms_raw = 0
@@ -126,6 +126,7 @@ class Device:
             self._HandleFrameResponse(timeout=self._DEFAULT_READ_TIMEOUT)
 
 
+
     # function setting the color values for the next frame
     # @param colors: an array of RGB values in hexadecimal representation eg: [0xffffff, 0x00ff00]
     def SetColors(self, colors):
@@ -158,6 +159,7 @@ class Device:
 
         # measure round-trip time in ms
         self.latency = (timer() - start)* 1000
+        self.logger.info(f"RTT measured manually: {self.latency}ms")
 
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
@@ -319,7 +321,6 @@ class Device:
                 # timed out but there is still space in the frame buffer
                 # -> just ignore timeout
                 pass
-
         # check if more open responses were received
         for _ in range(len(self._unansweredFrames) - 1):
             # read in if there is a response
@@ -414,6 +415,10 @@ class Device:
         # we collect multiple measurements and take the median to smooth out inconsistencies
         self._time_deltas_ms_raw.append(self._time_delta_ms_raw)
         self.time_delta_ms = statistics.median(self._time_deltas_ms_raw)
+        self.logger.info(f"Synchronizing Time (Frame {frame.id}): t1: {frame._t_frame_out} t2: {frame._t_receiver_in} t3: {frame._t_receiver_out} t4: {frame._t_response_in}\n\rResult: {self._time_delta_ms_raw}")
+        self.logger.info(f"TX Latency:  {frame._t_receiver_in - frame._t_frame_out}ms (corrected {frame._t_receiver_in - frame._t_frame_out - self.time_delta_ms}ms)")
+        self.logger.info(f"RX Latency:  {frame._t_response_in - frame._t_receiver_out}ms (corrected {frame._t_response_in - frame._t_receiver_out + self.time_delta_ms}ms)")
+        self.logger.info(f"RTT by Time Stamps: {frame._t_response_in- frame._t_frame_out}ms; ")
 
 
 

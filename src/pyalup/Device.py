@@ -100,6 +100,17 @@ class Device:
         self.logger.info("Disconnected.")
 
 
+    # send some packets to calibrate the time synchronization
+    def Calibrate(self):
+        for _ in range(len(self._time_deltas_ms_raw)):
+            # send an empty packet with no timestamp to collect synchronization data
+            self.frame.timestamp = 0
+            self.SetColors([])
+            self.Send()
+        # wait until all open responses arrive if buffering is used
+        self.FlushBuffer()
+
+
     # wait for all remaining answers for all unanswered frames
     # Use this eg. when pausing sending for a long time
     # @throws: TimeoutError: if a response is not received within the _DEFAULT_READ_TIMEOUT

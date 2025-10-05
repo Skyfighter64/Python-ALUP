@@ -140,7 +140,8 @@ class Device:
         # NOTE: technically, a shallow copy would be sufficient, but for consistency we do a deep copy
         frame = copy.deepcopy(self.frame)
         frame.id = self._nextFrameID
-        self._nextFrameID = (self._nextFrameID + 1) % 256 #TODO: should we cap this based on frame buffer size?s
+        self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize #TODO: should we cap this based on frame buffer size?s
+
 
         # send frame and wait for response while measuring time
         # TODO: does this measurement still work with buffering? or does it represent something else now

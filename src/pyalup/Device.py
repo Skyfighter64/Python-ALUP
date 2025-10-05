@@ -89,12 +89,25 @@ class Device:
 
     # function terminating the connection
     def Disconnect(self):
-        #self.SetColors([0xffffff])
+        try:
+            self.FlushBuffer()
+        except TimeoutError:
+            self.logger.warning("Could not wait for unanswered frames (timed out). Disconnecting anyways...")
         self.SetCommand(Command.DISCONNECT)
         self.Send()
         self.connected = False
         self.connection.Disconnect()
         self.logger.info("Disconnected.")
+
+
+    # wait for all remaining answers for all unanswered frames
+    # Use this eg. when pausing sending for a long time
+    # @throws: TimeoutError: if a response is not received within the _DEFAULT_READ_TIMEOUT
+    def FlushBuffer(self):
+        self.logger.info(f"Flushing buffer; Waiting for {len(self._unansweredFrames)} responses.")
+        # read all remaining frame responses with a timeout of 15s each
+        for _ in range(len(self._unansweredFrames)):
+            self._HandleFrameResponse(timeout=self._DEFAULT_READ_TIMEOUT)
 
 
     # function setting the color values for the next frame

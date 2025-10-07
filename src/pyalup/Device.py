@@ -165,7 +165,7 @@ class Device:
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
     def SendFrame(self, frame):
-        self.logger.info("Sending frame:")
+        self.logger.info("Sending frame (ID: " + str(frame.id) + "):")
         self.logger.debug(f"Converting timestamp: local time stamp {frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
         frameBytes = frame.ToBytes(self.time_delta_ms)
         self.logger.info("\n" + str(frame))
@@ -195,7 +195,6 @@ class Device:
         self.logger.debug("Waiting for configuration start")
         # wait for the configuration start byte
         while(self.connection.Read(1, self._DEFAULT_READ_TIMEOUT) != self._CONFIGURATION_START_BYTE):
-            #print("- Waiting for Configuration Start")
             pass
 
         config = Configuration()
@@ -312,7 +311,7 @@ class Device:
             # If the time stamps are big their contents might be too old already
 
             # to reproduce: disable calibration in buffer test script
-            # BUG: weird behaviour if buffer is full: openResponses escalate and connection slows down -> if +30ms are added to timeout
+            # BUG: weird behavior if buffer is full: openResponses escalate and connection slows down -> if +30ms are added to timeout
 
             timeout = remaining_time
             try:
@@ -380,7 +379,6 @@ class Device:
             self.logger.debug(response)
             response = self.connection.Read(1, timeout=timeout)
 
-        #time.sleep(1000)
                
 
     # pop the first frame with the given id from the given queue of frames
@@ -403,14 +401,14 @@ class Device:
                 frame = queue.popleft()
                 # rotate queue back to original state 
                 queue.rotate(i)
-                self.logger.debug("Found frame in deque at index " + str(i))
+                self.logger.debug("Found frame with ID " + str(id) + " in deque at index " + str(i))
                 return frame
             queue.rotate(-1) 
          
         # went through whole queue but did not find frame with ID
         # This should never happen because we only wait for answers of frames which 
         # were actually sent at some point
-        self.logger.error("Could not find frame with ID " + str(id) + " in deque")
+        self.logger.error("Could not find frame with ID " + str(id) + " in deque: " + str([str(i.id) for i in self._unansweredFrames]))
         return None
     
 

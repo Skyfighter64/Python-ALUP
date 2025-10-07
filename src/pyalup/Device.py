@@ -360,11 +360,13 @@ class Device:
             return
         
         elif (response == self._FRAME_ERROR_BYTE):
-            response_id = self._ReadUInt()
-            error_code = ErrorCode(self._ReadUInt())
+            # response is a frame error
+            response_id = self._ReadUInt(bytes=1)
+            error_code = ErrorCode(self._ReadUInt(bytes=1))
+            self.logger.error("Received ALUP Frame Error for frame ID " + str(response_id) + ". Error Code: " + str(error_code.name) + "(" + str(error_code.value) +")")
             # remove frame as it now is answered
             self._PopFrameWithID(response_id, self._unansweredFrames)
-            self.logger.warning("Received ALUP Frame Error for frame ID " + str(response_id) + ". Error Code: " + str(error_code.name) + "(" + str(ErrorCode.value) +")")
+            #TODO: maybe throw an exception here?
             return
         # If the received data is neither a frame error or acknowledgement it gets ignored
 

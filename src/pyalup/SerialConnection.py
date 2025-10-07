@@ -50,15 +50,15 @@ class SerialConnection:
 
         #NOTE: this will return all already read bytes even if the timeout is reached
         # Therefore, if it times out we would be loosing data if we wouldn't buffer.
-        incomingBytes = self.connection.read(sizeToRead)
-        self._rxBuffer += incomingBytes
+        if(sizeToRead > 0):
+            incomingBytes = self.connection.read(sizeToRead)
+            self._rxBuffer += incomingBytes
+            # check if the read call timed out or returned successfully
+            if len(incomingBytes) < size:
+                raise TimeoutError
 
-        # check if the read call timed out or returned successfully
-        if len(incomingBytes) < size:
-            raise TimeoutError
-        else:
-            # get the requested amount of bytes from the buffer
-            result = self._rxBuffer[:size]
-            #delete the requested bytes from the buffer
-            del self._rxBuffer[:size]
-            return result
+        # get the requested amount of bytes from the buffer
+        result = self._rxBuffer[:size]
+        #delete the requested bytes from the buffer
+        del self._rxBuffer[:size]
+        return result

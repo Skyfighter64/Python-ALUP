@@ -10,6 +10,7 @@ import collections
 import statistics
 import copy
 from timeit import default_timer as timer
+from enum import IntEnum
 
 
 
@@ -361,10 +362,10 @@ class Device:
         
         elif (response == self._FRAME_ERROR_BYTE):
             response_id = self._ReadUInt()
-            error_code = self._ReadUInt()
+            error_code = ErrorCode(self._ReadUInt())
             # remove frame as it now is answered
             self._PopFrameWithID(response_id, self._unansweredFrames)
-            self.logger.warning("Received ALUP Frame Error for frame ID " + str(response_id) + ". Error Code: " + str(error_code))
+            self.logger.warning("Received ALUP Frame Error for frame ID " + str(response_id) + ". Error Code: " + str(error_code.name) + "(" + str(ErrorCode.value) +")")
             return
         # If the received data is neither a frame error or acknowledgement it gets ignored
         self.logger.warning("Received answer that is neither a Frame Error or Frame Acknowledgement: " + str(response))
@@ -421,6 +422,12 @@ class Device:
         self.logger.info(f"RTT by Time Stamps: {frame._t_response_in- frame._t_frame_out}ms; ")
 
 
+# an enum containing all supported ALUP commands
+class ErrorCode(IntEnum):
+    INVALID_OFFSET = 1
+    INVALID_BODY_SIZE = 2
+    OUT_OF_MEMORY = 3
+    INVALID_COMMAND = 4
 
 class ConfigurationException(Exception):
     pass

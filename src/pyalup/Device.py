@@ -206,10 +206,10 @@ class Device:
 
         # read the configuration values
         config.deviceName = self._ReadString()
-        config.ledCount = self._ReadInt()
+        config.ledCount = self._ReadInt(bytes=4)
         config.frameBufferSize = self._ReadUInt(bytes=1)
-        config.dataPin = self._ReadInt()
-        config.clockPin = self._ReadInt()
+        config.dataPin = self._ReadInt(bytes=4)
+        config.clockPin = self._ReadInt(bytes=4)
         config.extraValues = self._ReadString()
 
         self.logger.info("Received device configuration: " + str(config))
@@ -260,14 +260,14 @@ class Device:
     # function reading a 2s complement integer value from the connection
     # @param bytes: the number of bytes the integer has (eg. 4 Bytes for 32bit Integer)
     # @return: the received number
-    def _ReadInt(self, bytes=4):
+    def _ReadInt(self, bytes):
         b = self.connection.Read(bytes, self._DEFAULT_READ_TIMEOUT)
         return int.from_bytes(b, byteorder='big', signed=True)
     
     # function reading an unsigned integer value from the connection
     # @param bytes: the number of bytes the integer has (eg. 4 Bytes for 32bit Integer)
     # @return: the received number
-    def _ReadUInt(self, bytes=4):
+    def _ReadUInt(self, bytes):
         b = self.connection.Read(bytes, self._DEFAULT_READ_TIMEOUT)
         return int.from_bytes(b, byteorder='big', signed=False)
 
@@ -342,7 +342,7 @@ class Device:
             _t_receiver_in = self._ReadUInt(bytes=4)
             _t_receiver_out = self._ReadUInt(bytes=4)
 
-            self.logger.error(f"Received frame acknowledgement: ID: {response_id}")
+            self.logger.info(f"Received frame acknowledgement: ID: {response_id}")
             # find corresponding frame
             frame = self._PopFrameWithID(response_id, self._unansweredFrames)
 

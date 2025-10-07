@@ -283,7 +283,6 @@ class Device:
     #                 and the time stamp of the sent frame
     def _WaitForResponse(self):
         # Read in all remaining responses, but only truly wait for the first one
-        # TODO: we might need to add some time to account for the ack transmission latency
 
         # wait until the time stamp of the most recently sent frame is reached
         if (self._unansweredFrames[-1].timestamp == 0): 
@@ -368,7 +367,14 @@ class Device:
             self.logger.warning("Received ALUP Frame Error for frame ID " + str(response_id) + ". Error Code: " + str(error_code.name) + "(" + str(ErrorCode.value) +")")
             return
         # If the received data is neither a frame error or acknowledgement it gets ignored
+
         self.logger.warning("Received answer that is neither a Frame Error or Frame Acknowledgement: " + str(response))
+        while (not (response == self._FRAME_ACKNOWLEDGEMENT_BYTE or response == self._FRAME_ERROR_BYTE)):
+            # read in all the trash that is on the line and print it out for debugging
+            self.logger.debug(response)
+            response = self.connection.Read(1, timeout=timeout)
+
+        #time.sleep(1000)
                
 
     # pop the first frame with the given id from the given queue of frames

@@ -72,7 +72,7 @@ class Frame:
         return b
     
     def __str__(self):
-        output = "Header:\n" \
+        output = "Header:" \
         "\n\tID: " + str(self.id) + \
         "\tFrame Body Size: " + str(len(self.colors) * 3) + \
         "\n\tFrame Body Offset: " + str(self.offset) + \

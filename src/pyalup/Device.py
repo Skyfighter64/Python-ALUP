@@ -108,6 +108,7 @@ class Device:
 
     # send some packets to calibrate the time synchronization
     def Calibrate(self):
+        self.logger.info("Calibrating time synchronization")
         for _ in range(len(self._time_deltas_ms_raw)):
             # send an empty packet with no timestamp to collect synchronization data
             self.frame.timestamp = 0
@@ -121,7 +122,7 @@ class Device:
     # Use this eg. when pausing sending for a long time
     # @throws: TimeoutError: if a response is not received within the _DEFAULT_READ_TIMEOUT
     def FlushBuffer(self):
-        self.logger.info(f"Flushing buffer; Waiting for {len(self._unansweredFrames)} responses.")
+        self.logger.info(f"Flushing buffer: Waiting for {len(self._unansweredFrames)} responses.")
         # read all remaining frame responses with a timeout of 15s each
         for _ in range(len(self._unansweredFrames)):
             self._HandleFrameResponse(timeout=self._DEFAULT_READ_TIMEOUT)
@@ -147,11 +148,10 @@ class Device:
         # NOTE: technically, a shallow copy would be sufficient, but for consistency we do a deep copy
         frame = copy.deepcopy(self.frame)
         frame.id = self._nextFrameID
-        self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize #TODO: should we cap this based on frame buffer size?s
+        self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize 
 
 
         # send frame and wait for response while measuring time
-        # TODO: does this measurement still work with buffering? or does it represent something else now
         start = timer()
         self.SendFrame(frame)
         self._unansweredFrames.append(frame)
@@ -168,14 +168,13 @@ class Device:
         self.logger.info("Sending frame (ID: " + str(frame.id) + "):")
         self.logger.debug(f"Converting timestamp: local time stamp {frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
         frameBytes = frame.ToBytes(self.time_delta_ms)
-        self.logger.info("\n" + str(frame))
-        self.logger.info("Total Frame size: %d" % (len(frameBytes)))
+        self.logger.debug("Frame:\n" + str(frame))
+        self.logger.info("Total Frame size: %d Bytes" % (len(frameBytes)))
         self.logger.info("Device Buffer usage before sending: " + str(len(self._unansweredFrames)) + "/" + str(self.configuration.frameBufferSize))
-        self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
+        #self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
 
         # save timestamp when frame was sent
         frame._t_frame_out = time.time_ns() // 1000000
-        
         self.connection.Send(frameBytes)
 
     # Set all LEDs to black by sending a clear command
@@ -291,6 +290,7 @@ class Device:
         else: 
             remaining_time = max((time.time_ns() // 1_000_000) - self._unansweredFrames[-1].timestamp, 0)
 
+        self.logger.info("Waiting for frame response from device for "+ str(remaining_time) + " ms")
         # check if there is more space in the buffer
         if(len(self._unansweredFrames) >= self.configuration.frameBufferSize):
             # buffer is full; wait additional 15s for response
@@ -300,6 +300,7 @@ class Device:
             except TimeoutError:
                 # timeout has been reached, device is probably dead
                 # pass exception on to caller
+                self.logger.error("TimeoutError: No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
                 raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
         else:
             # there is still space in the buffer; just send next packet as soon as Send() is called again
@@ -320,6 +321,7 @@ class Device:
                 # timed out but there is still space in the frame buffer
                 # -> just ignore timeout
                 pass
+        self.logger.info("Checking for additional responses")
         # check if more open responses were received
         for _ in range(len(self._unansweredFrames) - 1):
             # read in if there is a response
@@ -334,7 +336,6 @@ class Device:
     def _HandleFrameResponse(self, timeout):
         # read in next byte from connection, wait until the timeout has passed
         response = self.connection.Read(1, timeout=timeout)
-        self.logger.debug("Received %s (%s)" % (str(response), response.hex()))
 
         if(response == self._FRAME_ACKNOWLEDGEMENT_BYTE):
             # read in the acknowledgement data
@@ -426,7 +427,7 @@ class Device:
         # we collect multiple measurements and take the median to smooth out inconsistencies
         self._time_deltas_ms_raw.append(self._time_delta_ms_raw)
         self.time_delta_ms = statistics.median(self._time_deltas_ms_raw)
-        self.logger.info(f"Synchronizing Time (Frame {frame.id}): t1: {frame._t_frame_out} t2: {frame._t_receiver_in} t3: {frame._t_receiver_out} t4: {frame._t_response_in}\n\rResult: {self._time_delta_ms_raw}")
+        self.logger.info(f"Synchronizing Time (Frame {frame.id}): t1: {frame._t_frame_out} t2: {frame._t_receiver_in} t3: {frame._t_receiver_out} t4: {frame._t_response_in}\nResult: {self._time_delta_ms_raw}")
         self.logger.info(f"TX Latency:  {frame._t_receiver_in - frame._t_frame_out}ms (corrected {frame._t_receiver_in - frame._t_frame_out - self.time_delta_ms}ms)")
         self.logger.info(f"RX Latency:  {frame._t_response_in - frame._t_receiver_out}ms (corrected {frame._t_response_in - frame._t_receiver_out + self.time_delta_ms}ms)")
         self.logger.info(f"RTT by Time Stamps: {frame._t_response_in- frame._t_frame_out}ms; ")

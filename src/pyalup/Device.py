@@ -338,17 +338,21 @@ class Device:
         self.logger.debug("Received %s (%s)" % (str(response), response.hex()))
 
         if(response == self._FRAME_ACKNOWLEDGEMENT_BYTE):
-            # find corresponding frame
+            # read in the acknowledgement data
             response_id = self._ReadUInt(bytes=1)
-            self.logger.info(f"Received frame acknowledgement: ID: {response_id}")
+            _t_receiver_in = self._ReadUInt(bytes=4)
+            _t_receiver_out = self._ReadUInt(bytes=4)
+
+            self.logger.error(f"Received frame acknowledgement: ID: {response_id}")
+            # find corresponding frame
             frame = self._PopFrameWithID(response_id, self._unansweredFrames)
 
             # save response timestamp in ms
             frame._t_response_in = time.time_ns() // 1000000
 
             # read in timestamps from receiver
-            frame._t_receiver_in = self._ReadUInt()
-            frame._t_receiver_out = self._ReadUInt()
+            frame._t_receiver_in = _t_receiver_in
+            frame._t_receiver_out = _t_receiver_out
 
             # call the callback function if defined
             if(self._onFrameResponse is not None):

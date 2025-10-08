@@ -17,7 +17,7 @@ class Frame:
         # the command of this frame
         self.command = Command.NONE
 
-        self.id = 0 # the ID of this frame for identifying the corresponding response; unsigned 8bit integer (0-255)
+        self._id = 0 # the ID of this frame for identifying the corresponding response; unsigned 8bit integer (0-255)
 
         # time stamps for the frame in ms
         self._t_frame_out = 0 # time when frame was sent out
@@ -40,7 +40,7 @@ class Frame:
     # @return: a bytes object containing the header of this frame
     def _HeaderToBytes(self, time_delta_ms):
         #convert the header values into binary format
-        b = self.id.to_bytes(1, byteorder='big', signed=False)
+        b = self._id.to_bytes(1, byteorder='big', signed=False)
         b += self.command.value.to_bytes(1, byteorder='big', signed=False)
         b += (len(self.colors) * 3).to_bytes(4, byteorder='big', signed=True)
         b += self.offset.to_bytes(4, byteorder='big', signed=True)
@@ -73,7 +73,7 @@ class Frame:
     
     def __str__(self):
         output = "Header:" \
-        "\n\tID: " + str(self.id) + \
+        "\n\tID: " + str(self._id) + \
         "\tFrame Body Size: " + str(len(self.colors) * 3) + \
         "\n\tFrame Body Offset: " + str(self.offset) + \
         "\n\tTime Stamp: " + str(self.timestamp) + \

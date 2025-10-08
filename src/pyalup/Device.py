@@ -147,7 +147,7 @@ class Device:
         #       it, we need a fixed object to reference in the unanswered frames queue 
         # NOTE: technically, a shallow copy would be sufficient, but for consistency we do a deep copy
         frame = copy.deepcopy(self.frame)
-        frame.id = self._nextFrameID
+        frame._id = self._nextFrameID
         self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize 
 
 
@@ -165,7 +165,7 @@ class Device:
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
     def SendFrame(self, frame):
-        self.logger.info("Sending frame (ID: " + str(frame.id) + "):")
+        self.logger.info("Sending frame (ID: " + str(frame._id) + "):")
         self.logger.debug(f"Converting timestamp: local time stamp {frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
         frameBytes = frame.ToBytes(self.time_delta_ms)
         self.logger.debug("Frame:\n" + str(frame))
@@ -398,7 +398,7 @@ class Device:
         # this is implemented according to the recommendations in the python docs: 
         # https://docs.python.org/3/library/collections.html#collections.deque
         for i in range(len(queue)):
-            if (queue[0].id == id):
+            if (queue[0]._id == id):
                 # found matching ID 
                 frame = queue.popleft()
                 # rotate queue back to original state 
@@ -410,7 +410,7 @@ class Device:
         # went through whole queue but did not find frame with ID
         # This should never happen because we only wait for answers of frames which 
         # were actually sent at some point
-        self.logger.error("Could not find frame with ID " + str(id) + " in deque: " + str([str(i.id) for i in self._unansweredFrames]))
+        self.logger.error("Could not find frame with ID " + str(id) + " in deque: " + str([str(i._id) for i in self._unansweredFrames]))
         return None
     
 
@@ -428,7 +428,7 @@ class Device:
         # we collect multiple measurements and take the median to smooth out inconsistencies
         self._time_deltas_ms_raw.append(self._time_delta_ms_raw)
         self.time_delta_ms = statistics.median(self._time_deltas_ms_raw)
-        self.logger.info(f"Synchronizing Time (Frame {frame.id}): t1: {frame._t_frame_out} t2: {frame._t_receiver_in} t3: {frame._t_receiver_out} t4: {frame._t_response_in}\nResult: {self._time_delta_ms_raw}")
+        self.logger.info(f"Synchronizing Time (Frame {frame._id}): t1: {frame._t_frame_out} t2: {frame._t_receiver_in} t3: {frame._t_receiver_out} t4: {frame._t_response_in}\nResult: {self._time_delta_ms_raw}")
         self.logger.info(f"TX Latency:  {frame._t_receiver_in - frame._t_frame_out}ms (corrected {frame._t_receiver_in - frame._t_frame_out - self.time_delta_ms}ms)")
         self.logger.info(f"RX Latency:  {frame._t_response_in - frame._t_receiver_out}ms (corrected {frame._t_response_in - frame._t_receiver_out + self.time_delta_ms}ms)")
         self.logger.info(f"RTT by Time Stamps: {frame._t_response_in- frame._t_frame_out}ms; ")

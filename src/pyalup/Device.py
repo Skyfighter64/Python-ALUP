@@ -155,7 +155,7 @@ class Device:
         start = timer()
         self.SendFrame(frame)
         self._unansweredFrames.append(frame)
-        self.logger.debug("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
+        self.logger.info("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
         self._WaitForResponse()
 
         # measure round-trip time in ms
@@ -169,8 +169,8 @@ class Device:
         self.logger.debug(f"Converting timestamp: local time stamp {frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
         frameBytes = frame.ToBytes(self.time_delta_ms)
         self.logger.debug("Frame:\n" + str(frame))
-        self.logger.info("Total Frame size: %d Bytes" % (len(frameBytes)))
-        self.logger.info("Device Buffer usage before sending: " + str(len(self._unansweredFrames)) + "/" + str(self.configuration.frameBufferSize))
+        self.logger.debug("Total Frame size: %d Bytes" % (len(frameBytes)))
+        self.logger.debug("Device Buffer usage before sending: " + str(len(self._unansweredFrames)) + "/" + str(self.configuration.frameBufferSize))
         #self.logger.debug("Hex Data:\n %s" % (frameBytes.hex()))
 
         # save timestamp when frame was sent
@@ -201,6 +201,7 @@ class Device:
         config.protocolVersion = self._ReadString()
         # check if the protocol version is compatible
         if (not self._CheckProtocolVersion(config.protocolVersion)):
+            self.logger.error("Incompatible protocol versions: Supported versions: " + str(self.PROTOCOL_VERSIONS)+ " but device has: " + config.protocolVersion)
             raise ConfigurationException("Incompatible protocol versions: Supported versions: " + str(self.PROTOCOL_VERSIONS)+ " but device has: " + config.protocolVersion)
 
         # read the configuration values

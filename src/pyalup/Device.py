@@ -308,7 +308,6 @@ class Device:
 
             #TODO: do we actually want to try to read here or should we just start reading once the buffer is full?
             #TODO: do we want to not wait at all or should we wait for the timeout to be reached or half or so? 
-            #TODO: map acks to packets using sequence numbers
             # AKA. do we want to queue up frames or do we want to just balance out late acks? 
             # If the time stamps are big their contents might be too old already
 

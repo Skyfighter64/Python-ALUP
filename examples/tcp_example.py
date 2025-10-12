@@ -4,8 +4,8 @@ import time
 
 # create a new device object
 dev = Device()
-#establish the serial connection at port "COM9" with a BAUD of 115200
-dev.SerialConnect("COM6", 115200)
+# connect to a device in the network with the specified IP address and port
+dev.TcpConnect("127.0.0.1", 5012)
 
 # Send a color frame changing the first two leds
 print("--- Color Test ---")

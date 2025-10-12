@@ -181,8 +181,10 @@ class Device:
         self.connection.Send(frameBytes)
 
     # Set all LEDs to black by sending a clear command
-    def Clear(self):
+    # @param timestamp: the timestamp at which the command should be applied
+    def Clear(self, timestamp=0):
         frame = Frame()
+        frame.timestamp = timestamp
         frame.command = Command.CLEAR
         self.Send(frame)
 

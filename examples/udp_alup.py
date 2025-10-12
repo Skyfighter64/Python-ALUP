@@ -1,5 +1,5 @@
-from src.Device import Device
-from src.Frame import Command
+from pyalup.Device import Device
+from pyalup.Frame import Command
 import time
 
 # connect

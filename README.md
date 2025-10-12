@@ -1,12 +1,12 @@
 # Python-ALUP
-A python implementation of the ALUP v.0.2
+A python implementation of the ALUP v.0.3
 
 ## Properties
 - Supported versions:
-  - 0.2
+  - 0.3
 
 - Supported connections:
-  - UDP
+  - TCP
   - Serial (USB)
 
 
@@ -51,8 +51,12 @@ class Connection:
   #Function reading in the given size of data from the connection
   #Blocks until the requested number of bytes was received
   #@param size: an integer specifying the amount of bytes to read
+  # @param timeout: timeout in ms. If there is no data received within the timeout, a TimeoutError is raised.
+    #                 0 for non-blocking mode, None for full blocking mode. For more info, see socket docs.
+    #                 Default: 0
   #@return: a bytes object containing the read bytes
-  def Read(self, size):
+  #@raises: TimeoutError if the given timeout is exceeded
+  def Read(self, size, timeout):
     pass
 
 ```

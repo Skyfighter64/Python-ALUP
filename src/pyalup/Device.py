@@ -181,13 +181,10 @@ class Device:
         self.connection.Send(frameBytes)
 
     # Set all LEDs to black by sending a clear command
-    # Resets the command to the previous value afterwards
     def Clear(self):
-        # reset the command to default
-        old_command = self.frame.command = Command.NONE
-        self.SetCommand(Command.CLEAR)
-        self.Send()
-        self.SetCommand(old_command)
+        frame = Frame()
+        frame.command = Command.CLEAR
+        self.Send(frame)
 
 
     # function reading in the configuration

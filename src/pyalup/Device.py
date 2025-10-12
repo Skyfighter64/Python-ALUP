@@ -140,21 +140,24 @@ class Device:
         self.frame.command = command
 
     # function sending the current frame to the device and waiting for an acknowledgement
-    def Send(self):
+    # @param frame: the frame to send or None. If None, the current device.frame will be sent
+    def Send(self, frame=None):
         # copy the current frame from the device to send it
         # NOTE: we need this in order to save frame references into the _unansweredFrames deque:
         #       self.frame should be modifiable from outside as part of the API, but as soon as we send
         #       it, we need a fixed object to reference in the unanswered frames queue 
-        # NOTE: technically, a shallow copy would be sufficient, but for consistency we do a deep copy
-        frame = copy.deepcopy(self.frame)
-        frame._id = self._nextFrameID
+        if frame is None:
+            _frame = copy.deepcopy(self.frame)
+        else:
+            _frame = frame
+        _frame._id = self._nextFrameID
         self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize 
 
 
         # send frame and wait for response while measuring time
         start = timer()
-        self.SendFrame(frame)
-        self._unansweredFrames.append(frame)
+        self.SendFrame(_frame)
+        self._unansweredFrames.append(_frame)
         self.logger.info("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
         self._WaitForResponse()
 

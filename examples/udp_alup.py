@@ -15,11 +15,11 @@ dev.SetColors([0xffffff,0x1252ff, 0x824347])
 dev.Send()
 
 # send a command
-dev.SetCommand(Command.LED_BUILTIN);
+dev.SetCommand(Command.LED_BUILTIN)
 dev.Send()
 
-time.sleep(1);
-dev.SetCommand(Command.LED_BUILTIN);
+time.sleep(1)
+dev.SetCommand(Command.LED_BUILTIN)
 dev.Send()
 # disconnect
 dev.Disconnect()

@@ -31,7 +31,7 @@ class Device:
     _DEFAULT_READ_TIMEOUT = 10_000 
 
     # a list of all supported protocol versions
-    PROTOCOL_VERSIONS = ["0.2.2"]
+    PROTOCOL_VERSIONS = ["0.3"]
 
     # default constructor
     # @param _time_delta_buffer_size: The number of time measurements for the median used to calculate the time_delta.

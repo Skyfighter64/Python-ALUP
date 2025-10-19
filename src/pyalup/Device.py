@@ -308,13 +308,9 @@ class Device:
         else:
             # there is still space in the buffer; just send next packet as soon as Send() is called again
 
-            #TODO: do we actually want to try to read here or should we just start reading once the buffer is full?
             #TODO: do we want to not wait at all or should we wait for the timeout to be reached or half or so? 
             # AKA. do we want to queue up frames or do we want to just balance out late acks? 
             # If the time stamps are big their contents might be too old already
-
-            # to reproduce: disable calibration in buffer test script
-            # BUG: weird behavior if buffer is full: openResponses escalate and connection slows down -> if +30ms are added to timeout
 
             timeout = remaining_time
             try:

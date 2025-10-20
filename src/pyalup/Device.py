@@ -109,7 +109,7 @@ class Device:
     # send some packets to calibrate the time synchronization
     def Calibrate(self):
         self.logger.info("Calibrating time synchronization")
-        for _ in range(len(self._time_deltas_ms_raw)):
+        for _ in range(len(self._time_deltas_ms_raw) + 1):
             # send an empty packet with no timestamp to collect synchronization data
             self.frame.timestamp = 0
             self.SetColors([])

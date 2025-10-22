@@ -37,7 +37,8 @@ class SerialConnection:
     # @return: a bytes object containing the read bytes
     def Read(self, size, timeout=0):
         # apply the timeout to the serial connection
-        self.connection.timeout = (timeout / 1_000) if timeout is not None else None
+        if (timeout != self.connection.timeout):
+            self.connection.timeout = (timeout / 1_000) if timeout is not None else None
 
         # NOTE: we need to buffer the incoming bytes here in case of an exception.
         # The reason for this is the way pySerial handles read timeouts.

@@ -255,7 +255,7 @@ class Device:
         b = self.connection.Read(1, self._DEFAULT_READ_TIMEOUT)
         while(b != b'\x00'):
             receivedBytes += b
-            b = self.connection.Read(1)
+            b = self.connection.Read(1, self._DEFAULT_READ_TIMEOUT)
 
         return receivedBytes.decode('utf-8')
 

@@ -18,6 +18,8 @@ class SerialConnection:
     # Establishes the connection; Blocks until finished
     def Connect(self):
         self.connection = serial.Serial(self.port, self.baud)
+        self.connection.reset_output_buffer()
+        self.connection.reset_input_buffer()
 
     # function terminating the connection
     def Disconnect(self):
@@ -27,6 +29,7 @@ class SerialConnection:
     # @param data: a bytes object containing the data to send
     def Send(self, data):
         self.connection.write(data)
+        self.connection.flush()
 
     # Function reading in the given size of data from the connection
     # Blocks until the requested number of bytes was received or the timeout is exceeded

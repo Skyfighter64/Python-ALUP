@@ -49,6 +49,7 @@ class Device:
         self._time_deltas_ms_raw = collections.deque(maxlen=_time_delta_buffer_size)
 
         # a queue containing the unanswered frames
+        # oldest frames are stored to the left, new frames are appended to the right of the
         self._unansweredFrames = collections.deque() # TODO: would it be useful to make it fixed-size or would this cause a problem?
         self._nextFrameID = 0
 
@@ -149,7 +150,7 @@ class Device:
         if frame is None:
             _frame = copy.deepcopy(self.frame)
         else:
-            _frame = frame
+            _frame = copy.deepcopy(frame)
         _frame._id = self._nextFrameID
         self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize 
 
@@ -301,10 +302,13 @@ class Device:
             try:
                 self._HandleFrameResponse(timeout=timeout)
             except TimeoutError:
-                # timeout has been reached, device is probably dead
+                # timeout has been reached, treat device to be dead
+                # treat packet as dropped for robustness with lossy communciation protocols
+                # remove oldest frame from buffer
+                dropped_frame = self._unansweredFrames.popleft()
                 # pass exception on to caller
-                self.logger.error("TimeoutError: No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
-                raise TimeoutError("No Frame Acknowledgement or Frame Error received from receiver within a time of %d ms" % (timeout))
+                self.logger.error(f"TimeoutError: No Frame Acknowledgement or Frame Error for frame {dropped_frame._id} received from receiver within a time of {timeout} ms. Dropped frame from queue.")
+                raise TimeoutError(f"No Frame Acknowledgement or Frame Error for frame {dropped_frame._id} received from receiver within a time of {timeout} ms. Dropped frame from queue.")
         else:
             # there is still space in the buffer; just send next packet as soon as Send() is called again
 

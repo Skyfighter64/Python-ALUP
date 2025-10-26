@@ -28,7 +28,11 @@ class Device:
     # default timeout for reading from the connection in ms
     # used everywhere where no specific timeout value is needed
     # default : 10_000 ms
-    _DEFAULT_READ_TIMEOUT = 10_000 
+    _DEFAULT_READ_TIMEOUT = 10_000
+    # timeout specifying the extra time in ms to wait from reaching a frame's time stamp 
+    # until the frame is dropped and a TimeoutError is raised  
+    # default : 15_000 ms
+    _FRAME_DROP_TIMEOUT = 15_000
 
     # a list of all supported protocol versions
     PROTOCOL_VERSIONS = ["0.3"]
@@ -298,7 +302,7 @@ class Device:
         # check if there is more space in the buffer
         if(len(self._unansweredFrames) >= self.configuration.frameBufferSize):
             # buffer is full; wait additional 15s for response
-            timeout = remaining_time + 15_000
+            timeout = remaining_time + self._FRAME_DROP_TIMEOUT
             try:
                 self._HandleFrameResponse(timeout=timeout)
             except TimeoutError:

@@ -63,3 +63,6 @@ class TcpConnection:
             raise TimeoutError
 
         return result
+    
+    def __str__(self):
+        return f"TcpConnection({self.remote_ip}:{self.port})"

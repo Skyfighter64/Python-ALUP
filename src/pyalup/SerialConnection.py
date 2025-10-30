@@ -66,3 +66,6 @@ class SerialConnection:
         #delete the requested bytes from the buffer
         del self._rxBuffer[:size]
         return result
+
+    def __str__(self):
+        return f"SerialConnection({self.port}:{self.baud})"

@@ -99,14 +99,21 @@ class Device:
         self.connected = True
 
     # function terminating the connection
-    def Disconnect(self):
+    # @param timestamp: a time stamp at which to disconnect. Default: 0
+    def Disconnect(self, timestamp=0):
         try:
             self.FlushBuffer()
         except TimeoutError:
             self.logger.warning("Could not wait for unanswered frames (timed out). Disconnecting anyways...")
-        self.SetCommand(Command.DISCONNECT)
-        self.Send()
+        
+        # Disconnect ALUP
+        frame = Frame()
+        frame.timestamp = timestamp
+        frame.command = Command.DISCONNECT
+        self.Send(frame)
         self.connected = False
+
+        # Disconnect connection
         self.connection.Disconnect()
         self.logger.info("Disconnected.")
 
@@ -296,6 +303,7 @@ class Device:
             # NOTE: this is especially needed for cases where the time synchronization is not done yet or inaccurate
             remaining_time = 0
         else: 
+
             remaining_time = max((time.time_ns() // 1_000_000) - self._unansweredFrames[-1].timestamp, 0)
 
         self.logger.info("Waiting for frame response from device for "+ str(remaining_time) + " ms")
@@ -319,7 +327,6 @@ class Device:
             #TODO: do we want to not wait at all or should we wait for the timeout to be reached or half or so? 
             # AKA. do we want to queue up frames or do we want to just balance out late acks? 
             # If the time stamps are big their contents might be too old already
-
             timeout = remaining_time
             try:
                 self._HandleFrameResponse(timeout=timeout)

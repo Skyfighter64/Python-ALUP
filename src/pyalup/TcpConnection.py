@@ -44,7 +44,6 @@ class TcpConnection:
         try:
             # apply the timeout to the socket
             self.socket.settimeout((timeout / 1_000) if timeout is not None else None)
-
             while (len(self._rxBuffer) < size):
                 # not enough data in buffer
                 # read in a new packet
@@ -65,4 +64,4 @@ class TcpConnection:
         return result
     
     def __str__(self):
-        return f"TcpConnection({self.remote_ip}:{self.port})"
+        return f"TcpConnection({self.remote_ip}:{self.remote_port})"

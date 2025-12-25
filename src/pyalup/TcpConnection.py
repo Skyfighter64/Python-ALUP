@@ -29,6 +29,7 @@ class TcpConnection:
     # function sending the given data over the Socket connection
     # @param data: a bytes object containing the binary data to send
     def Send(self, data):
+        self.logger.physical("[>>>]: " + str(data))
         self.socket.send(data)
 
     # function reading in data from the socket and returning the requested number
@@ -61,6 +62,7 @@ class TcpConnection:
             # to a timeout exception
             raise TimeoutError
 
+        self.logger.physical("[<<<]: " + str(result))
         return result
     
     def __str__(self):

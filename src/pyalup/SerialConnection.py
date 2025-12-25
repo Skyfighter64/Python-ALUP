@@ -31,7 +31,7 @@ class SerialConnection:
     # function sending the given data over the connection
     # @param data: a bytes object containing the data to send
     def Send(self, data):
-        self.logger.debug("[>>>]: " + str(data))
+        self.logger.physical("[>>>]: " + str(data))
         self.connection.write(data)
         self.connection.flush()
 
@@ -70,7 +70,7 @@ class SerialConnection:
         #delete the requested bytes from the buffer
         del self._rxBuffer[:size]
 
-        self.logger.debug("[<<<]: " + str(result))
+        self.logger.physical("[<<<]: " + str(result))
         return result
 
     def __str__(self):

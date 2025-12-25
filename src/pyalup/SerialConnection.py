@@ -23,6 +23,7 @@ class SerialConnection:
 
     # function terminating the connection
     def Disconnect(self):
+        self.connection.flush()
         self.connection.close()
 
     # function sending the given data over the connection

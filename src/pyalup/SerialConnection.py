@@ -1,4 +1,5 @@
 import serial
+import logging
 
 #
 #   This class requires pySerial to be installed
@@ -14,6 +15,7 @@ class SerialConnection:
         self.baud = baud
         self.connection = None
         self._rxBuffer = bytearray()
+        self.logger = logging.getLogger(__name__)
 
     # Establishes the connection; Blocks until finished
     def Connect(self):
@@ -29,6 +31,7 @@ class SerialConnection:
     # function sending the given data over the connection
     # @param data: a bytes object containing the data to send
     def Send(self, data):
+        self.logger.debug("[>>>]: " + str(data))
         self.connection.write(data)
         self.connection.flush()
 
@@ -66,6 +69,8 @@ class SerialConnection:
         result = self._rxBuffer[:size]
         #delete the requested bytes from the buffer
         del self._rxBuffer[:size]
+
+        self.logger.debug("[<<<]: " + str(result))
         return result
 
     def __str__(self):

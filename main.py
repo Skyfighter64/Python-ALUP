@@ -2,6 +2,10 @@ from src.Device import Device
 from src.Frame import Command
 import time
 
+
+# NOTE: this file was only used for testing purposes and is now deprecated, TODO: remove
+
+
 # create a new device object
 dev = Device()
 # establish the serial connection at port "COM9" with a BAUD of 115200

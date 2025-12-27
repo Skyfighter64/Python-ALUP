@@ -350,6 +350,13 @@ class Device:
         # read in next byte from connection, wait until the timeout has passed
         response = self.connection.Read(1, timeout=timeout)
 
+        # read in all the trash that is on the line and print it out for debugging
+        # this may happen if parts of the answer were dropped or when debugging
+        while (not (response == self._FRAME_ACKNOWLEDGEMENT_BYTE or response == self._FRAME_ERROR_BYTE)):
+            self.logger.debug("Received Unknown Response: " + str(response))
+            response = self.connection.Read(1, timeout=timeout)
+
+        # handle response
         if(response == self._FRAME_ACKNOWLEDGEMENT_BYTE):
             # read in the acknowledgement data
             response_id = self._ReadUInt(bytes=1)
@@ -387,11 +394,7 @@ class Device:
             return
         # If the received data is neither a frame error or acknowledgement it gets ignored
 
-        self.logger.warning("Received answer that is neither a Frame Error or Frame Acknowledgement: " + str(response))
-        while (not (response == self._FRAME_ACKNOWLEDGEMENT_BYTE or response == self._FRAME_ERROR_BYTE)):
-            # read in all the trash that is on the line and print it out for debugging
-            self.logger.debug(response)
-            response = self.connection.Read(1, timeout=timeout)
+
 
                
 

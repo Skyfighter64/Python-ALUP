@@ -31,8 +31,12 @@ class SerialConnection:
     # function sending the given data over the connection
     # @param data: a bytes object containing the data to send
     def Send(self, data):
-        self.logger.physical("[>>>]: " + str(data))
-        self.connection.write(data)
+        
+
+        # split data in 64 byte chunks and write them separately
+        for i in range(0, len(data), 64):
+            self.connection.write(data[i:i+64])
+            self.logger.physical("[>>>]: " + str(data[i:i+64]))
         self.connection.flush()
 
     # Function reading in the given size of data from the connection

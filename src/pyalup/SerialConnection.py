@@ -52,6 +52,9 @@ class SerialConnection:
         # When reading the next time, we first check the buffer and then read in the 
         # remaining needed data 
 
+        #TODO: Where here do we actually add something to the buffer which is not read instantly again?
+        # we just raise a timeout as soon as we dont get enough data so why bother buffering? For the next Read call?
+
         # check how many bytes are already buffered
         sizeToRead = size - len(self._rxBuffer)
         sizeToRead = max(0, sizeToRead)
@@ -63,6 +66,8 @@ class SerialConnection:
             self._rxBuffer += incomingBytes
             # check if the read call timed out or returned successfully
             if len(incomingBytes) < size:
+                # the call took longer than expected and couldn't deliver enough data
+                self.logger.debug(f"Got {len(incomingBytes)} bytes but wanted {size}. Remaining Data: {incomingBytes}")
                 raise TimeoutError
 
         # get the requested amount of bytes from the buffer

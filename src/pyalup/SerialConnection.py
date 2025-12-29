@@ -31,13 +31,20 @@ class SerialConnection:
     # function sending the given data over the connection
     # @param data: a bytes object containing the data to send
     def Send(self, data):
-        
-
         # split data in 64 byte chunks and write them separately
         for i in range(0, len(data), 64):
+            chunk_size = len(data[i:i+64])
+
+            self.logger.debug(f"Chunk Size: {chunk_size}, serial write buffer occupation: {self.connection.out_waiting}")
+            # wait until there is enough space in the serial output buffer for the chunk
+            while(64 - self.connection.out_waiting < chunk_size):
+                pass
+    
+            # write the chunk to the serial connection
             self.connection.write(data[i:i+64])
             self.logger.physical("[>>>]: " + str(data[i:i+64]))
         self.connection.flush()
+
 
     # Function reading in the given size of data from the connection
     # Blocks until the requested number of bytes was received or the timeout is exceeded

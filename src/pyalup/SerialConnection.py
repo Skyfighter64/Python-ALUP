@@ -51,7 +51,7 @@ class SerialConnection:
             self.connection.write(data[i:i+self._MAX_CHUNK_SIZE])
             self.logger.physical("[>>>]: " + str(data[i:i+self._MAX_CHUNK_SIZE]))
         # flush the write buffer
-        #self.connection.flush()
+        self.connection.flush()
 
 
     # Function reading in the given size of data from the connection

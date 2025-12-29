@@ -44,7 +44,7 @@ class SerialConnection:
 
             self.logger.debug(f"Chunk Size: {chunk_size}, serial write buffer occupation: {self.connection.out_waiting}")
             # block until there is enough space in the serial output buffer for the chunk
-            while(self._HARDWARE_WRITE_BUFFER_SIZE <= chunk_size + self.connection.out_waiting):
+            while(self._HARDWARE_WRITE_BUFFER_SIZE - self.connection.out_waiting < chunk_size):
                 pass
     
             # write the chunk to the serial connection

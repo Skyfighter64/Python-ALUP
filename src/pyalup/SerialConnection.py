@@ -15,6 +15,12 @@ class SerialConnection:
         self.baud = baud
         self.connection = None
         self._rxBuffer = bytearray()
+        # assume a hardware buffer of 64 bytes for writing data
+        # NOTE: this is used to prevent buffer overflows on linux
+        # on most systems, this should be 64, in case of problems reduce to 32
+        self._HARDWARE_WRITE_BUFFER_SIZE = 64
+        # split large amounts of data to the chunk size in bytes before sending
+        self._MAX_CHUNK_SIZE = 64 
         self.logger = logging.getLogger(__name__)
 
     # Establishes the connection; Blocks until finished
@@ -32,18 +38,20 @@ class SerialConnection:
     # @param data: a bytes object containing the data to send
     def Send(self, data):
         # split data in 64 byte chunks and write them separately
-        for i in range(0, len(data), 64):
-            chunk_size = len(data[i:i+64])
+        for i in range(0, len(data), self._MAX_CHUNK_SIZE):
+            # calculate the size of the next chunk to send
+            chunk_size = len(data[i:i+self._MAX_CHUNK_SIZE])
 
             self.logger.debug(f"Chunk Size: {chunk_size}, serial write buffer occupation: {self.connection.out_waiting}")
-            # wait until there is enough space in the serial output buffer for the chunk
-            while(64 - self.connection.out_waiting < chunk_size):
+            # block until there is enough space in the serial output buffer for the chunk
+            while(self._HARDWARE_WRITE_BUFFER_SIZE <= chunk_size + self.connection.out_waiting):
                 pass
     
             # write the chunk to the serial connection
-            self.connection.write(data[i:i+64])
-            self.logger.physical("[>>>]: " + str(data[i:i+64]))
-        self.connection.flush()
+            self.connection.write(data[i:i+self._MAX_CHUNK_SIZE])
+            self.logger.physical("[>>>]: " + str(data[i:i+self._MAX_CHUNK_SIZE]))
+        # flush the write buffer
+        #self.connection.flush()
 
 
     # Function reading in the given size of data from the connection

@@ -168,7 +168,7 @@ class Device:
 
         # send frame and wait for response while measuring time
         start = timer()
-        self.SendFrame(_frame)
+        self._SendFrame(_frame)
         self._unansweredFrames.append(_frame)
         self.logger.info("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
         self._WaitForResponse()
@@ -179,7 +179,7 @@ class Device:
 
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
-    def SendFrame(self, frame):
+    def _SendFrame(self, frame):
         self.logger.info("Sending frame (ID: " + str(frame._id) + "):")
         self.logger.debug(f"Converting timestamp: local time stamp {frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
         frameBytes = frame.ToBytes(self.time_delta_ms)

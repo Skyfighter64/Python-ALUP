@@ -134,7 +134,7 @@ class Device:
     # Use this eg. when pausing sending for a long time
     # @throws: TimeoutError: if a response is not received within the _DEFAULT_READ_TIMEOUT
     def FlushBuffer(self):
-        self.logger.info(f"Flushing buffer: Waiting for {len(self._unansweredFrames)} responses.")
+        self.logger.info(f"Flushing buffer: Waiting for {len(self._unansweredFrames)} open responses.")
         # read all remaining frame responses with a timeout of 15s each
         for _ in range(len(self._unansweredFrames)):
             self._HandleFrameResponse(timeout=self._DEFAULT_READ_TIMEOUT)
@@ -163,24 +163,24 @@ class Device:
         else:
             _frame = copy.deepcopy(frame)
         _frame._id = self._nextFrameID
-        self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize 
+        self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize #TODO: make this modulo maximum ID to also distinguish frames for small buffer sizes and make it more stable
 
 
         # send frame and wait for response while measuring time
         start = timer()
         self._SendFrame(_frame)
         self._unansweredFrames.append(_frame)
-        self.logger.info("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
+        self.logger.protocol("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
         self._WaitForResponse()
 
         # measure round-trip time in ms
         self.latency = (timer() - start)* 1000
-        self.logger.info(f"RTT measured manually: {self.latency}ms")
+        self.logger.protocol(f"RTT measured manually: {self.latency}ms")
 
     # function sending the current frame without waiting for an acknowledgement
     # Improper usage may result in connection freeze
     def _SendFrame(self, frame):
-        self.logger.info("Sending frame (ID: " + str(frame._id) + "):")
+        self.logger.protocol("Sending frame (ID: " + str(frame._id) + "):")
         self.logger.debug(f"Converting timestamp: local time stamp {frame.timestamp} + offset {self.time_delta_ms} = receiver time stamp {frame._LocalTimeToReceiverTime(self.time_delta_ms)}")
         frameBytes = frame.ToBytes(self.time_delta_ms)
         self.logger.debug("Frame:\n" + str(frame))
@@ -205,7 +205,7 @@ class Device:
     # @return: The configuration object read
     # @throws: ConfigurationException if the protocol version of the devices are incompatible
     def _ReadConfiguration(self):
-        self.logger.debug("Waiting for configuration start")
+        self.logger.protocol("Waiting for configuration start")
         # wait for the configuration start byte
         while(self.connection.Read(1, self._DEFAULT_READ_TIMEOUT) != self._CONFIGURATION_START_BYTE):
             pass
@@ -226,7 +226,7 @@ class Device:
         config.clockPin = self._ReadInt(bytes=4)
         config.extraValues = self._ReadString()
 
-        self.logger.info("Received device configuration: " + str(config))
+        self.logger.protocol("Received device configuration: " + str(config))
         self._SendByte(self._CONFIGURATION_ACKNOWLEDGEMENT_BYTE)
         self.logger.debug("Configuration acknowledgement sent.")
         return config
@@ -244,17 +244,17 @@ class Device:
             # send a configuration error indicating that the versions are incompatible
             self._SendByte(self._CONFIGURATION_ERROR_BYTE)
             return False
-        self.logger.info("Protocol Version Check: Device Protocol version %s is compatible." % (protocolVersion))
+        self.logger.debug("Protocol Version Check: Device Protocol version %s is compatible." % (protocolVersion))
         return True
 
 
     # function waiting for a connection request
     def _WaitForConnectionRequest(self):
-        self.logger.info("Waiting for connection request from device")
+        self.logger.protocol("Waiting for connection request from device")
         # wait for the connection request
         while(True):
             if (self.connection.Read(1, self._DEFAULT_READ_TIMEOUT) == self._CONNECTION_REQUEST_BYTE):
-                self.logger.info("Received connection request from device")
+                self.logger.protocol("Received connection request from device")
                 return
 
 
@@ -306,7 +306,7 @@ class Device:
 
             remaining_time = max((time.time_ns() // 1_000_000) - self._unansweredFrames[-1].timestamp, 0)
 
-        self.logger.info("Waiting for frame response from device for "+ str(remaining_time) + " ms")
+        self.logger.protocol("Waiting for frame response from device for "+ str(remaining_time) + " ms")
         # check if there is more space in the buffer
         if(len(self._unansweredFrames) >= self.configuration.frameBufferSize):
             # buffer is full; wait additional 15s for response
@@ -334,7 +334,7 @@ class Device:
                 # timed out but there is still space in the frame buffer
                 # -> just ignore timeout
                 pass
-        self.logger.info("Checking for additional responses")
+        self.logger.protocol("Checking for additional responses")
         # check if more open responses were received
         for _ in range(len(self._unansweredFrames) - 1):
             # read in if there is a response
@@ -363,7 +363,7 @@ class Device:
             _t_receiver_in = self._ReadUInt(bytes=4)
             _t_receiver_out = self._ReadUInt(bytes=4)
 
-            self.logger.info(f"Received frame acknowledgement: ID: {response_id}")
+            self.logger.protocol(f"Received frame acknowledgement: ID: {response_id}")
             # find corresponding frame
             frame = self._PopFrameWithID(response_id, self._unansweredFrames)
 
@@ -443,10 +443,10 @@ class Device:
         # we collect multiple measurements and take the median to smooth out inconsistencies
         self._time_deltas_ms_raw.append(self._time_delta_ms_raw)
         self.time_delta_ms = statistics.median(self._time_deltas_ms_raw)
-        self.logger.info(f"Synchronizing Time (Frame {frame._id}): t1: {frame._t_frame_out} t2: {frame._t_receiver_in} t3: {frame._t_receiver_out} t4: {frame._t_response_in}\nResult: {self._time_delta_ms_raw}")
-        self.logger.info(f"TX Latency:  {frame._t_receiver_in - frame._t_frame_out}ms (corrected {frame._t_receiver_in - frame._t_frame_out - self.time_delta_ms}ms)")
-        self.logger.info(f"RX Latency:  {frame._t_response_in - frame._t_receiver_out}ms (corrected {frame._t_response_in - frame._t_receiver_out + self.time_delta_ms}ms)")
-        self.logger.info(f"RTT by Time Stamps: {frame._t_response_in- frame._t_frame_out}ms; ")
+        self.logger.protocol(f"Synchronizing Time (Frame {frame._id}): t1: {frame._t_frame_out} t2: {frame._t_receiver_in} t3: {frame._t_receiver_out} t4: {frame._t_response_in}\nResult: {self._time_delta_ms_raw}")
+        self.logger.protocol(f"TX Latency:  {frame._t_receiver_in - frame._t_frame_out}ms (corrected {frame._t_receiver_in - frame._t_frame_out - self.time_delta_ms}ms)")
+        self.logger.protocol(f"RX Latency:  {frame._t_response_in - frame._t_receiver_out}ms (corrected {frame._t_response_in - frame._t_receiver_out + self.time_delta_ms}ms)")
+        self.logger.protocol(f"RTT by Time Stamps: {frame._t_response_in- frame._t_frame_out}ms; ")
 
 
 # an enum containing all supported ALUP commands

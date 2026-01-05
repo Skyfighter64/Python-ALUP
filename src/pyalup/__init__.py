@@ -57,5 +57,6 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
 
 # add a log level for physical communication logging
 addLoggingLevel(levelName="PHYSICAL", levelNum=5)
-
+# add a log level for protocol event logging
+addLoggingLevel(levelName="PROTOCOL", levelNum=15)
 logger = logging.getLogger(__name__)

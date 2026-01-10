@@ -1,5 +1,5 @@
 import socket
-
+import logging
 
 class UdpConnection:
     # default constructor
@@ -17,6 +17,8 @@ class UdpConnection:
         # a buffer for incoming bytes. recv() only seems to be able to read whole packages,
         # docs are unclear, so this seems to be needed s
         self._rxBuffer = bytearray()
+
+        self.logger = logging.getLogger(__name__)
 
     # function establishing the UDP connection to the specified device
     def Connect(self):

@@ -1,4 +1,5 @@
 import socket
+import logging
 
 
 class TcpConnection:
@@ -13,6 +14,8 @@ class TcpConnection:
         # a buffer for incoming bytes. recv() only seems to be able to read whole packages,
         # docs are unclear, so this seems to be needed
         self._rxBuffer = bytearray()
+
+        self.logger = logging.getLogger(__name__)
 
     # function establishing the TCP connection to the specified device
     def Connect(self):

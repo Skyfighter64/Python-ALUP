@@ -163,7 +163,8 @@ class Device:
         else:
             _frame = copy.deepcopy(frame)
         _frame._id = self._nextFrameID
-        self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize #TODO: make this modulo maximum ID to also distinguish frames for small buffer sizes and make it more stable
+        #self._nextFrameID = (self._nextFrameID + 1) % self.configuration.frameBufferSize #TODO: make this modulo maximum ID to also distinguish frames for small buffer sizes and make it more stable
+        self._nextFrameID = (self._nextFrameID + 1) % 256 #TODO: make this modulo maximum ID to also distinguish frames for small buffer sizes and make it more stable
 
 
         # send frame and wait for response while measuring time

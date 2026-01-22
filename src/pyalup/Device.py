@@ -171,8 +171,6 @@ class Device:
         start = timer()
         self._SendFrame(_frame)
         self._unansweredFrames.append(_frame)
-        print("-------")
-        print([i._id for i in self._unansweredFrames])
         self.logger.protocol("Added frame to unanswered Frames. Total: " + str(len(self._unansweredFrames)))
         self._WaitForResponse()
 
@@ -369,8 +367,6 @@ class Device:
             self.logger.protocol(f"Received frame acknowledgement: ID: {response_id}")
             # find corresponding frame
             frame = self._PopFrameWithID(response_id, self._unansweredFrames)
-            print("after pop " + str(response_id))
-            print([i._id for i in self._unansweredFrames])
 
             # save response timestamp in ms
             frame._t_response_in = time.time_ns() // 1000000

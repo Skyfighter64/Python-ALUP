@@ -49,7 +49,7 @@ class SerialConnection:
     
             # write the chunk to the serial connection
             self.connection.write(data[i:i+self._MAX_CHUNK_SIZE])
-            self.logger.physical("[>>>]: " + str(data[i:i+self._MAX_CHUNK_SIZE]))
+            self.logger.physical("[>>>]: " + str([int(b) for b in data[i:i+self._MAX_CHUNK_SIZE]]))
         # flush the write buffer
         self.connection.flush()
 
@@ -83,6 +83,7 @@ class SerialConnection:
         if(sizeToRead > 0):
             incomingBytes = self.connection.read(sizeToRead)
             self._rxBuffer += incomingBytes
+            self.logger.physical("[<<<]: " + str(incomingBytes))
             # check if the read call timed out or returned successfully
             if len(incomingBytes) < size:
                 # the call took longer than expected and couldn't deliver enough data
@@ -93,8 +94,6 @@ class SerialConnection:
         result = self._rxBuffer[:size]
         #delete the requested bytes from the buffer
         del self._rxBuffer[:size]
-
-        self.logger.physical("[<<<]: " + str(result))
         return result
 
     def __str__(self):

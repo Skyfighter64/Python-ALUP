@@ -118,7 +118,7 @@ class Device:
         self.logger.info("Disconnected.")
 
 
-    # send some packets to calibrate the time synchronization
+    # send some empty frames to calibrate the time synchronization
     def Calibrate(self):
         self.logger.info("Calibrating time synchronization")
         for _ in range(len(self._time_deltas_ms_raw) + 1):

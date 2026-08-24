@@ -39,8 +39,8 @@ class Group:
         using multithreading
 
         @param delayTarget: Synchronously update all devices after the given delay target (in ms) passed.
-                            All group devices update their LEDs after the given delay target, based on the
-                            current time, is exceeded.
+                            All group devices update their LEDs after the given delay target based on the
+                            current time.
                             Set to None to deactivate (default).
                             NOTE: This overrides time stamps of all group devices' frames
                             NOTE: If a device's connection is slower than the specified delay target, it will

@@ -1,5 +1,5 @@
 from enum import IntEnum
-
+import logging
 
 class Frame:
     def __init__(self):
@@ -24,6 +24,8 @@ class Frame:
         self._t_receiver_in = 0 # time when receiver got the frame
         self._t_receiver_out = 0 # time when receiver sent out acknowledgement
         self._t_response_in = 0 # time when acknowledgement was received
+
+        self.logger = logging.getLogger(__name__)
 
     # function returning a binary representation of this frame according to
     # the ALUP protocol definition
@@ -70,7 +72,48 @@ class Frame:
             # convert each hex color into binary and append the result
             b += color.to_bytes(3, byteorder='big', signed = False)
         return b
-    
+
+    # function parsing the given binary data into this frame instance
+    # @param bytes: a valid byte representation of an ALUP frame
+    # @returns: 
+    def FromBytes(self, frame_bytes):
+        # split the bytes according to the protocol standard
+        # and apply them to the fields of this frame
+
+        # parse the frame header
+        id_bytes = frame_bytes[0:1]
+        command_bytes = frame_bytes[1:2]
+        body_size_bytes = frame_bytes[2:6]
+        body_offset_bytes = frame_bytes[6:10]
+        timestamp_bytes = frame_bytes[10:14]
+
+        self._id = int.from_bytes(id_bytes, byteorder='big', signed=False)
+        self.command = Command(int.from_bytes(command_bytes, byteorder='big', signed=False))
+        self.body_size = int.from_bytes(body_size_bytes, byteorder='big', signed=True)
+        self.offset = int.from_bytes(body_offset_bytes, byteorder='big', signed=True)
+        self.timestamp = int.from_bytes(timestamp_bytes, byteorder='big', signed=False)
+
+        # check the frame body size
+        if(self.body_size % 3 != 0):
+            self.logger.warning(f"Frame body has invalid size: {self.body_size} is not divisible by 3")
+
+        # parse the frame body
+        self.colors = []
+        frame_body_bytes = frame_bytes[14:]
+
+        # check the length of the frame body size
+        if(len(frame_body_bytes) != self.body_size):
+            self.logger.warning(f"Frame Body contains more bytes ({len(frame_body_bytes)}) than specified in header ({self.body_size}).")
+
+        # extract the individual colors
+        for i in range(0, self.body_size, 3):
+            color = int.from_bytes(frame_body_bytes[i:i+3], byteorder='big', signed=False)
+            self.colors.append(color)
+
+        # check if the sizes match
+        assert len(self.colors) == self.body_size // 3
+
+
     def __str__(self):
         output = "Header:" \
         "\n\tID: " + str(self._id) + \

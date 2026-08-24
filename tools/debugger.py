@@ -41,7 +41,7 @@ def AnalyzeRawData(text:str):
     print([int(i) for i in frame_bytes])
     frame = Frame()
     frame.FromBytes(frame_bytes)
-    print("\n Extracted Frame:")
+    print("\nExtracted Frame:")
     print(frame)
 
 
